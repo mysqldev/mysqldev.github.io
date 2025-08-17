@@ -26,13 +26,13 @@
 <meta property="og:site_name" content="MySQL Notes">
 <meta property="og:description" content="Undo Log Header如果一个事务update多次，则可能产生多条undo log record，这组undo log record视为一个undo log。 一个undo log会先写一个undo log header （参见 trx_undo_header_create），记录产生这个undo log的事务信息以及指向该undo log中的undo log record的指针。也就是说">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="http://example.com/_images/undo-log-header.png">
+<meta property="og:image" content="http://example.com/undo-log/undo-log-header.png">
 <meta property="article:published_time" content="2027-08-17T01:52:01.000Z">
-<meta property="article:modified_time" content="2025-08-17T11:45:59.967Z">
+<meta property="article:modified_time" content="2025-08-17T12:05:54.224Z">
 <meta property="article:author" content="mysqldev">
 <meta property="article:tag" content="undo">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://example.com/_images/undo-log-header.png">
+<meta name="twitter:image" content="http://example.com/undo-log/undo-log-header.png">
 
 
 <link rel="canonical" href="http://example.com/undo-log.html">
@@ -205,7 +205,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-08-17 19:45:59" itemprop="dateModified" datetime="2025-08-17T19:45:59+08:00">2025-08-17</time>
+      <time title="Modified: 2025-08-17 20:05:54" itemprop="dateModified" datetime="2025-08-17T20:05:54+08:00">2025-08-17</time>
     </span>
 
   
@@ -386,7 +386,7 @@
 <li>Undo log segment header &#x3D; 56~86字节，共30字节</li>
 </ul>
 <p>这之后才是undo log header和undo log record。</p>
-<p><img src="/_images/undo-log-header.png" alt="undo-log-header.png"></p>
+<p><img src="/undo-log/undo-log-header.png" alt="undo-log-header.png"></p>
 
     </div>
 
