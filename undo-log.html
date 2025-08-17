@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Muse","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="Undo Log Header如果一个事务update多次，则可能产生多条undo log record，这组undo log record视为一个undo log。 一个undo log会先写一个undo log header （参见 trx_undo_header_create），记录产生这个undo log的事务信息以及指向该undo log中的undo log record的指针。也就是说">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Undo Log">
+<meta property="og:url" content="http://example.com/undo-log.html">
+<meta property="og:site_name" content="MySQL Notes">
+<meta property="og:description" content="Undo Log Header如果一个事务update多次，则可能产生多条undo log record，这组undo log record视为一个undo log。 一个undo log会先写一个undo log header （参见 trx_undo_header_create），记录产生这个undo log的事务信息以及指向该undo log中的undo log record的指针。也就是说">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/_images/undo-log-header.png">
+<meta property="article:published_time" content="2027-08-17T01:52:01.000Z">
+<meta property="article:modified_time" content="2025-08-17T11:45:59.967Z">
+<meta property="article:author" content="mysqldev">
+<meta property="article:tag" content="undo">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/_images/undo-log-header.png">
+
+
+<link rel="canonical" href="http://example.com/undo-log.html">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/undo-log.html","path":"undo-log.html","title":"Undo Log"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Undo Log | MySQL Notes</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MySQL Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">MySQL原理&源码&实践</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Undo-Log-Header"><span class="nav-number">1.</span> <span class="nav-text">Undo Log Header</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Undo-Page%E9%A1%B5%E9%9D%A2"><span class="nav-number">2.</span> <span class="nav-text">Undo Page页面</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Undo-Log-Segment-Undo-Segment"><span class="nav-number">3.</span> <span class="nav-text">Undo Log Segment (Undo Segment)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Undo-Log-Segment-Header"><span class="nav-number">3.1.</span> <span class="nav-text">Undo Log Segment Header</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Undo-Log-Header-Page"><span class="nav-number">3.2.</span> <span class="nav-text">Undo Log Header Page</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">mysqldev</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/undo-log.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="mysqldev">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Undo Log | MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Undo Log
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2027-08-17 09:52:01" itemprop="dateCreated datePublished" datetime="2027-08-17T09:52:01+08:00">2027-08-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-08-17 19:45:59" itemprop="dateModified" datetime="2025-08-17T19:45:59+08:00">2025-08-17</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="Undo-Log-Header"><a href="#Undo-Log-Header" class="headerlink" title="Undo Log Header"></a>Undo Log Header</h1><p>如果一个事务update多次，则可能产生多条undo log record，这组undo log record视为一个undo log。</p>
+<p>一个undo log会先写一个undo log header （参见 <code>trx_undo_header_create</code>），记录产生这个undo log的事务信息以及指向该undo log中的undo log record的指针。也就是说undo log &#x3D; undo log header + undo log records。如果事务既有insert又有update，则会占用两个undo log header。</p>
+<p>undo log header结构如下：</p>
+<table>
+<thead>
+<tr>
+<th><strong>相对偏移量</strong></th>
+<th><strong>字段</strong></th>
+<th><strong>含义</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>TRX_UNDO_TRX_ID</td>
+<td>事务ID</td>
+</tr>
+<tr>
+<td>8</td>
+<td>TRX_UNDO_TRX_NO</td>
+<td>事务no，事务的提交序</td>
+</tr>
+<tr>
+<td>16</td>
+<td>TRX_UNDO_TRX_NO</td>
+<td>只在unpdate undo log中有定义。事务执行了某行的标记删除</td>
+</tr>
+<tr>
+<td>18</td>
+<td>TRX_UNDO_LOG_START</td>
+<td>该undo log的第一条record的偏移量</td>
+</tr>
+<tr>
+<td>20</td>
+<td>TRX_UNDO_FLAGS</td>
+<td>undo flags：<br/>+ TRX_UNDO_FLAG_XID &#x3D; 0x01<br/>+ TRX_UNDO_FLAG_GTID &#x3D; 0x02<br/>+ TRX_UNDO_FLAG_XA_PREPARE_GTID &#x3D; 0x04</td>
+</tr>
+<tr>
+<td>21</td>
+<td>TRX_UNDO_DICT_TRANS</td>
+<td>事务是dict相关事务</td>
+</tr>
+<tr>
+<td>22</td>
+<td>TRX_UNDO_TABLE_ID</td>
+<td>table id</td>
+</tr>
+<tr>
+<td>30</td>
+<td>TRX_UNDO_NEXT_LOG</td>
+<td>本页面内下一个undo log header（一个页面内允许有多个undo log header，其所属的undo log可能属于其他事务）的偏移量。</td>
+</tr>
+<tr>
+<td>32</td>
+<td>TRX_UNDO_PREV_LOG</td>
+<td>本页面内上一个undo log header的偏移量。</td>
+</tr>
+<tr>
+<td>34</td>
+<td>TRX_UNDO_HISTORY_NODE</td>
+<td>如果该undo log加入了history list，这个位置是list node</td>
+</tr>
+<tr>
+<td>46</td>
+<td></td>
+<td>TRX_UNDO_LOG_OLD_HDR_SIZE &#x3D; 34 + FLST_NODE_SIZE &#x3D; 46大小</td>
+</tr>
+</tbody></table>
+<h1 id="Undo-Page页面"><a href="#Undo-Page页面" class="headerlink" title="Undo Page页面"></a>Undo Page页面</h1><p>如果一个事务产生的undo log record量比较大，导致undo log header所在页面装不下这个事务的所有undo log record，就需要再分配一个新的页面用来存放溢出来的undo log record。</p>
+<p>这类undo log页面类型为<code>FIL_PAGE_UNDO_LOG</code>，其格式为：</p>
+<table>
+<thead>
+<tr>
+<th><strong>页内偏移量</strong></th>
+<th><strong>字段</strong></th>
+<th><strong>说明</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>38 (通用page header)</td>
+<td>TRX_UNDO_PAGE_TYPE</td>
+<td>TRX_UNDO_INSERT或TRX_UNDO_UPDATE之一</td>
+</tr>
+<tr>
+<td>40</td>
+<td>TRX_UNDO_PAGE_START</td>
+<td>存储undo record页面起始位置</td>
+</tr>
+<tr>
+<td>42</td>
+<td>TRX_UNDO_PAGE_FREE</td>
+<td>空闲区域起始位置</td>
+</tr>
+<tr>
+<td>44</td>
+<td><strong>TRX_UNDO_PAGE_NODE</strong></td>
+<td>undo page链表节点（大小为2*FLST_NODE_SIZE&#x3D;12字节）。</td>
+</tr>
+<tr>
+<td>56</td>
+<td></td>
+<td>链表节点结束</td>
+</tr>
+</tbody></table>
+<p>页面头总计TRX_UNDO_PAGE_HDR_SIZE&#x3D;56-38&#x3D;18字节。</p>
+<p>事务新分配页面并加到undo log header链表的逻辑见<code>trx_undo_add_page</code>。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 分配undo log页面，并串到undo log header所在page上。</span></span><br><span class="line"><span class="function"><span class="type">buf_block_t</span> *<span class="title">trx_undo_add_page</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">trx_t</span> *trx,               <span class="comment">/*!&lt; in: transaction */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">trx_undo_t</span> *undo,         <span class="comment">/*!&lt; in: undo log record一条记录的内存对象 */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">trx_undo_ptr_t</span> *undo_ptr, <span class="comment">/*!&lt; in: 事务的undo segment(trx-&gt;rsegs.m_redo或trx-&gt;rsegs.m_noredo) */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">mtr_t</span> *mtr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">page_t</span> *header_page;</span><br><span class="line">    <span class="type">buf_block_t</span> *new_block;</span><br><span class="line">    <span class="type">page_t</span> *new_page;</span><br><span class="line">    <span class="type">trx_rseg_t</span> *rseg;</span><br><span class="line">    ulint n_reserved;</span><br><span class="line"></span><br><span class="line">    rseg = undo_ptr-&gt;rseg;</span><br><span class="line">    <span class="comment">// undo log header所在page对象</span></span><br><span class="line">    header_page = <span class="built_in">trx_undo_page_get</span>(<span class="built_in">page_id_t</span>(undo-&gt;space, undo-&gt;hdr_page_no), undo-&gt;page_size, mtr);</span><br><span class="line">    <span class="built_in">fsp_reserve_free_extents</span>(&amp;n_reserved, undo-&gt;space, <span class="number">1</span>, FSP_UNDO, mtr);</span><br><span class="line">    <span class="comment">// 从改undo log所在segment申请一个空闲页（segment参见后面说明）</span></span><br><span class="line">    new_block = <span class="built_in">fseg_alloc_free_page_general</span>(TRX_UNDO_SEG_HDR + TRX_UNDO_FSEG_HEADER + header_page,</span><br><span class="line">                                           undo-&gt;top_page_no + <span class="number">1</span>, FSP_UP, <span class="literal">true</span>, mtr, mtr);</span><br><span class="line">    <span class="built_in">fil_space_release_free_extents</span>(undo-&gt;space, n_reserved);</span><br><span class="line"></span><br><span class="line">    undo-&gt;last_page_no = new_block-&gt;page.id.<span class="built_in">page_no</span>();</span><br><span class="line">    new_page = <span class="built_in">buf_block_get_frame</span>(new_block);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 初始化Undo Page的TRX_UNDO_PAGE_HDR各个字段（TRX_UNDO_PAGE_TYPE、TRX_UNDO_PAGE_START、TRX_UNDO_PAGE_FREE）</span></span><br><span class="line">    <span class="built_in">trx_undo_page_init</span>(new_page, undo-&gt;type, mtr);</span><br><span class="line">    <span class="comment">// 将这个新页面串到undo log header的链表中（通过TRX_UNDO_PAGE_LIST节点）</span></span><br><span class="line">    <span class="built_in">flst_add_last</span>(header_page + TRX_UNDO_SEG_HDR + TRX_UNDO_PAGE_LIST, new_page + TRX_UNDO_PAGE_HDR + TRX_UNDO_PAGE_NODE, mtr);</span><br><span class="line">    undo-&gt;size++;</span><br><span class="line">    rseg-&gt;<span class="built_in">incr_curr_size</span>();</span><br><span class="line">    <span class="keyword">return</span> new_block;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="Undo-Log-Segment-Undo-Segment"><a href="#Undo-Log-Segment-Undo-Segment" class="headerlink" title="Undo Log Segment (Undo Segment)"></a>Undo Log Segment (Undo Segment)</h1><p>至此知，一个事务产生的undo log record可能涉及多个undo page，且这些undo page会串成链。实际上，每个事务会使用两个undo page的链，一个针对普通表、一个针对临时表，二者主要差异是临时表产生的undo不需要持久化。前面说过，逻辑上一组页面称为segment，undo page所在的segment称之为undo log segment。</p>
+<p><code>trx_undo_add_page</code>入参中undo_ptr就是指这样的segment。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">trx_t</span></span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">	<span class="type">trx_rsegs_t</span> rsegs;</span><br><span class="line">    ...</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">trx_rsegs_t</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">trx_undo_ptr_t</span> m_redo; <span class="comment">// 指向普通表（undo数据未来需要恢复）的回滚段</span></span><br><span class="line">	<span class="type">trx_undo_ptr_t</span> m_noredo; <span class="comment">// 指向临时表（undo数据未来不需要恢复）的回滚段</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 表示事务的回滚段</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">trx_undo_ptr_t</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">trx_rseg_t</span> *rseg; <span class="comment">// 事务的回滚段</span></span><br><span class="line">	<span class="type">trx_undo_t</span> *insert_undo; <span class="comment">// insert undo log指针</span></span><br><span class="line">	<span class="type">trx_undo_t</span> *update_undo; <span class="comment">// update undo log指针</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Undo-Log-Segment-Header"><a href="#Undo-Log-Segment-Header" class="headerlink" title="Undo Log Segment Header"></a>Undo Log Segment Header</h2><p>Undo Log Segment的第一个页面会额外记录该segment的信息，称之为undo log segment header，格式如下：</p>
+<table>
+<thead>
+<tr>
+<th><strong>页内偏移量</strong></th>
+<th><strong>字段</strong></th>
+<th><strong>含义</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>56</td>
+<td>TRX_UNDO_STATE</td>
+<td>回滚段状态</td>
+</tr>
+<tr>
+<td>58</td>
+<td>TRX_UNDO_LAST_LOG</td>
+<td>该回滚段header页面中最后一条undo log header的偏移量（一个header允许存在多个undo log header）。</td>
+</tr>
+<tr>
+<td>60</td>
+<td>TRX_UNDO_FSEG_HEADER</td>
+<td>该回滚段header所在的file segment的header</td>
+</tr>
+<tr>
+<td>70</td>
+<td>TRX_UNDO_PAGE_LIST</td>
+<td>[仅在回滚段第一个页面有定义]，该回滚段的页面链表起始节点。关联到其他非第一个页面的TRX_UNDO_PAGE_NODE字段。</td>
+</tr>
+<tr>
+<td>86</td>
+<td></td>
+<td>回滚段header结束位置。</td>
+</tr>
+</tbody></table>
+<p>Undo Log Segment状态取值：</p>
+<ul>
+<li>TRX_UNDO_ACTIVE</li>
+<li>TRX_UNDO_CACHED</li>
+<li>TRX_UNDO_TO_FREE</li>
+<li>TRX_UNDO_TO_PURGE</li>
+<li>TRX_UNDO_PREPARED_80028</li>
+<li>TRX_UNDO_PREPARED</li>
+<li>TRX_UNDO_PREPARED_IN_TC</li>
+</ul>
+<h2 id="Undo-Log-Header-Page"><a href="#Undo-Log-Header-Page" class="headerlink" title="Undo Log Header Page"></a>Undo Log Header Page</h2><p>结合前面的描述，综合来看，一个Undo Log Segment的第一个页面开头记录的信息包含3种header：</p>
+<ul>
+<li>通用页面header &#x3D; 0~38字节，共TRX_UNDO_PAGE_HDR&#x3D;38字节</li>
+<li>Undo Page Header &#x3D; 38~56字节，共TRX_UNDO_PAGE_HDR_SIZE&#x3D;18字节</li>
+<li>Undo log segment header &#x3D; 56~86字节，共30字节</li>
+</ul>
+<p>这之后才是undo log header和undo log record。</p>
+<p><img src="/_images/undo-log-header.png" alt="undo-log-header.png"></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/undo/" rel="tag"># undo</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/undo-log-record.html" rel="prev" title="Undo Log Record简介">
+                  <i class="fa fa-angle-left"></i> Undo Log Record简介
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/rollback-segment.html" rel="next" title="回滚段">
+                  回滚段 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">mysqldev</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

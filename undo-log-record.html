@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Muse","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="参考：https:&#x2F;&#x2F;dev.mysql.com&#x2F;doc&#x2F;refman&#x2F;8.0&#x2F;en&#x2F;innodb-undo-logs.htmlhttps:&#x2F;&#x2F;jimmy2angel.github.io&#x2F;2019&#x2F;05&#x2F;07&#x2F;InnoDB-undo-log&#x2F;https:&#x2F;&#x2F;zhuanlan.zhihu.com&#x2F;p&#x2F;165457904 Undo作用undo记录了数据修改的前镜像，用来支持事务回滚、快照读。 Undo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Undo Log Record简介">
+<meta property="og:url" content="http://example.com/undo-log-record.html">
+<meta property="og:site_name" content="MySQL Notes">
+<meta property="og:description" content="参考：https:&#x2F;&#x2F;dev.mysql.com&#x2F;doc&#x2F;refman&#x2F;8.0&#x2F;en&#x2F;innodb-undo-logs.htmlhttps:&#x2F;&#x2F;jimmy2angel.github.io&#x2F;2019&#x2F;05&#x2F;07&#x2F;InnoDB-undo-log&#x2F;https:&#x2F;&#x2F;zhuanlan.zhihu.com&#x2F;p&#x2F;165457904 Undo作用undo记录了数据修改的前镜像，用来支持事务回滚、快照读。 Undo">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/_images/undo-log-record.png">
+<meta property="article:published_time" content="2025-08-17T11:36:21.000Z">
+<meta property="article:modified_time" content="2025-08-17T11:38:02.929Z">
+<meta property="article:author" content="mysqldev">
+<meta property="article:tag" content="undo">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/_images/undo-log-record.png">
+
+
+<link rel="canonical" href="http://example.com/undo-log-record.html">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/undo-log-record.html","path":"undo-log-record.html","title":"Undo Log Record简介"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Undo Log Record简介 | MySQL Notes</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MySQL Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">MySQL原理&源码&实践</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-overview-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">mysqldev</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/undo-log-record.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="mysqldev">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Undo Log Record简介 | MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Undo Log Record简介
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2025-08-17 19:36:21 / Modified: 19:38:02" itemprop="dateCreated datePublished" datetime="2025-08-17T19:36:21+08:00">2025-08-17</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>参考：<br><a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.0/en/innodb-undo-logs.html">https://dev.mysql.com/doc/refman/8.0/en/innodb-undo-logs.html</a><br><a target="_blank" rel="noopener" href="https://jimmy2angel.github.io/2019/05/07/InnoDB-undo-log/">https://jimmy2angel.github.io/2019/05/07/InnoDB-undo-log/</a><br><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/165457904">https://zhuanlan.zhihu.com/p/165457904</a></p>
+<p>Undo作用<br>undo记录了数据修改的前镜像，用来支持事务回滚、快照读。</p>
+<p>Undo log record格式<br>Undo log record类型<br>undo log record共有如下几种类型：</p>
+<ul>
+<li>TRX_UNDO_INSERT_REC：刚刚执行insert对应的undo log record</li>
+<li>TRX_UNDO_DEL_MARK_REC：标记删除一行</li>
+<li>TRX_UNDO_UPD_EXIST_REC：更新已经存在的行</li>
+<li>TRX_UNDO_UPD_DEL_REC：将已经标记删除的行update为未删除行</li>
+</ul>
+<p><img src="/_images/undo-log-record.png" alt="undo-log-record.png"></p>
+<p>Insert操作undo日志<br>参见 trx_undo_page_report_insert函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">static</span> ulint <span class="title">trx_undo_page_report_insert</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">page_t</span> *undo_page,           <span class="comment">/*!&lt; in: undo log page */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">trx_t</span> *trx,                  <span class="comment">/*!&lt; in: transaction */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">dict_index_t</span> *index,         <span class="comment">/*!&lt; in: clustered index */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">const</span> <span class="type">dtuple_t</span> *clust_entry, <span class="comment">/*!&lt; in: index entry which will be inserted to the clustered index */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">mtr_t</span> *mtr)</span>                  <span class="comment">/*!&lt; in: mtr */</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ulint first_free;</span><br><span class="line">    byte *ptr;</span><br><span class="line">    ulint i;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">ut_ad</span>(<span class="built_in">mach_read_from_2</span>(undo_page + TRX_UNDO_PAGE_HDR + TRX_UNDO_PAGE_TYPE) == TRX_UNDO_INSERT);</span><br><span class="line"></span><br><span class="line">    first_free = <span class="built_in">mach_read_from_2</span>(undo_page + TRX_UNDO_PAGE_HDR + TRX_UNDO_PAGE_FREE);</span><br><span class="line">    ptr = undo_page + first_free;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// ptr指向当前record开头地址。</span></span><br><span class="line">    <span class="comment">// 预留2字节用来存放下一条record</span></span><br><span class="line">    ptr += <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 填充undo record类型、undo_no、table id</span></span><br><span class="line">    *ptr++ = TRX_UNDO_INSERT_REC;</span><br><span class="line">    ptr += <span class="built_in">mach_u64_write_much_compressed</span>(ptr, trx-&gt;undo_no);</span><br><span class="line">    ptr += <span class="built_in">mach_u64_write_much_compressed</span>(ptr, index-&gt;table-&gt;id);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 填充能够确定该行的唯一键所涉及的列。</span></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="built_in">dict_index_get_n_unique</span>(index); i++) &#123;</span><br><span class="line">        <span class="type">const</span> <span class="type">dfield_t</span> *field = <span class="built_in">dtuple_get_nth_field</span>(clust_entry, i);</span><br><span class="line">        ulint flen = <span class="built_in">dfield_get_len</span>(field);</span><br><span class="line">        ptr += <span class="built_in">mach_write_compressed</span>(ptr, flen);</span><br><span class="line">        <span class="keyword">if</span> (flen != UNIV_SQL_NULL &amp;&amp; flen != <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="built_in">ut_memcpy</span>(ptr, <span class="built_in">dfield_get_data</span>(field), flen);</span><br><span class="line">            ptr += flen;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (index-&gt;table-&gt;n_v_cols) &#123;</span><br><span class="line">        <span class="built_in">trx_undo_report_insert_virtual</span>(undo_page, index-&gt;table, clust_entry, &amp;ptr);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1. 将当前偏移量追加到ptr指向的位置</span></span><br><span class="line">    <span class="comment">// 2. 更新page的TRX_UNDO_PAGE_FREE字段</span></span><br><span class="line">    <span class="comment">// 3. 预留的两字节更新为本条记录尾部字节位置</span></span><br><span class="line">    <span class="keyword">return</span> (<span class="built_in">trx_undo_page_set_next_prev_and_add</span>(undo_page, ptr, mtr));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>Delete操作undo日志<br>参考trx_undo_page_report_modify函数，实际上Update操作对应的undo日志也是这个函数来构建。<br>格式参考图示。</p>
+<p>Update操作undo日志<br>这里描述一个简单的场景：更新非主键列且列宽不变，即就地更新。格式参考图示。<br>其他场景：</p>
+<ul>
+<li>更新主键场景：标记删除旧行，写入新行。</li>
+<li>更新非主键但列宽变大：先物理删除该行，然后找新空间写入整行。</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/undo/" rel="tag"># undo</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/mysql-arch.html" rel="prev" title="MySQL架构">
+                  <i class="fa fa-angle-left"></i> MySQL架构
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/undo-log.html" rel="next" title="Undo Log">
+                  Undo Log <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">mysqldev</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

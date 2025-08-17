@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Muse","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="回滚段的分配如前述，一个事务的产生若干undo log record，这些undo log record存储在若干undo page（一个undo log header page 和 若干undo log normal page）中，这一组undo page就是一个逻辑上的undo log segment。 因为每个事务都有0~2个undo log segment，一组并发的事务就可能同时需要很多">
+<meta property="og:type" content="article">
+<meta property="og:title" content="回滚段">
+<meta property="og:url" content="http://example.com/rollback-segment.html">
+<meta property="og:site_name" content="MySQL Notes">
+<meta property="og:description" content="回滚段的分配如前述，一个事务的产生若干undo log record，这些undo log record存储在若干undo page（一个undo log header page 和 若干undo log normal page）中，这一组undo page就是一个逻辑上的undo log segment。 因为每个事务都有0~2个undo log segment，一组并发的事务就可能同时需要很多">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/_images/rseg-header.png">
+<meta property="og:image" content="http://example.com/_images/rseg-undo.png">
+<meta property="article:published_time" content="2027-08-17T01:52:01.000Z">
+<meta property="article:modified_time" content="2025-08-17T11:45:46.395Z">
+<meta property="article:author" content="mysqldev">
+<meta property="article:tag" content="rseg">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/_images/rseg-header.png">
+
+
+<link rel="canonical" href="http://example.com/rollback-segment.html">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/rollback-segment.html","path":"rollback-segment.html","title":"回滚段"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>回滚段 | MySQL Notes</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MySQL Notes</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">MySQL原理&源码&实践</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9E%E6%BB%9A%E6%AE%B5%E7%9A%84%E5%88%86%E9%85%8D"><span class="nav-number">1.</span> <span class="nav-text">回滚段的分配</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Rollback-Segment-Header"><span class="nav-number">1.1.</span> <span class="nav-text">Rollback Segment Header</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">mysqldev</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/rollback-segment.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="mysqldev">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="回滚段 | MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          回滚段
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2027-08-17 09:52:01" itemprop="dateCreated datePublished" datetime="2027-08-17T09:52:01+08:00">2027-08-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-08-17 19:45:46" itemprop="dateModified" datetime="2025-08-17T19:45:46+08:00">2025-08-17</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="回滚段的分配"><a href="#回滚段的分配" class="headerlink" title="回滚段的分配"></a>回滚段的分配</h1><p>如前述，一个事务的产生若干undo log record，这些undo log record存储在若干undo page（一个undo log header page 和 若干undo log normal page）中，这一组undo page就是一个逻辑上的undo log segment。</p>
+<p>因为每个事务都有0~2个undo log segment，一组并发的事务就可能同时需要很多个undo log segment。这些undo log segment由回滚段统一管理，负责分配。</p>
+<p>Undo log segment的管理分为如下的层次：Undo Tablespace -&gt; Rollback Segment -&gt; Undo Log Slot。</p>
+<p>粗略地说，系统表空间有一个特殊页面记录了128个回滚段的位置，每个回滚段有1024个slot可以申请Undo Log Segment。</p>
+<h2 id="Rollback-Segment-Header"><a href="#Rollback-Segment-Header" class="headerlink" title="Rollback Segment Header"></a>Rollback Segment Header</h2><table>
+<thead>
+<tr>
+<th><strong>偏移量</strong></th>
+<th><strong>字段</strong></th>
+<th><strong>含义</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>TRX_RSEG_MAX_SIZE</td>
+<td>该回滚段最大大小（以页面个数计）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>TRX_RSEG_HISTORY_SIZE</td>
+<td>该undo log在history list中占用的page个数</td>
+</tr>
+<tr>
+<td>8</td>
+<td>TRX_RSEG_HISTORY</td>
+<td>history list链表节点</td>
+</tr>
+<tr>
+<td>24</td>
+<td>TRX_RSEG_FSEG_HEADER</td>
+<td>TODO</td>
+</tr>
+<tr>
+<td>34</td>
+<td>TRX_RSEG_UNDO_SLOTS</td>
+<td>undo slots，每个slot占用4个字节，包含space id和page no。</td>
+</tr>
+</tbody></table>
+<p><img src="/_images/rseg-header.png" alt="rseg-header.png"></p>
+<p>系统中总共有最多128个undo tablespace，128个Rollback Segment Header就分布在这些undo tablespace中。在系统表空间的TRX_SYS_PAGE_NO&#x3D;5号页面上，记录了128个Rollback Segment Header的位置信息。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">/** Read each rollback segment slot in the TRX_SYS page and the RSEG_ARRAY</span></span><br><span class="line"><span class="comment">page of each undo tablespace. Create trx_rseg_t objects for all rollback</span></span><br><span class="line"><span class="comment">segments found. This runs at database startup and initializes the in-memory</span></span><br><span class="line"><span class="comment">lists of trx_rseg_t objects. We need to look at all slots in TRX_SYS and</span></span><br><span class="line"><span class="comment">each RSEG_ARRAY page because we need to look for any existing undo log that</span></span><br><span class="line"><span class="comment">may need to be recovered by purge. No latch is needed since this is still</span></span><br><span class="line"><span class="comment">single-threaded startup.If we find existing rseg slots in TRX_SYS page</span></span><br><span class="line"><span class="comment">that reference undo tablespaces and have active undo logs, then quit.</span></span><br><span class="line"><span class="comment">They require an upgrade of undo tablespaces and that cannot happen with</span></span><br><span class="line"><span class="comment">active undo logs.</span></span><br><span class="line"><span class="comment">@param[in]      purge_queue     queue of rsegs to purge */</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">trx_rsegs_init_start</span><span class="params">(<span class="type">purge_pq_t</span> *purge_queue)</span> </span>&#123;</span><br><span class="line">  trx_sys-&gt;rseg_history_len = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="type">uint32_t</span> slot;</span><br><span class="line">  <span class="type">mtr_t</span> mtr;</span><br><span class="line">  <span class="type">space_id_t</span> space_id;</span><br><span class="line">  <span class="type">page_no_t</span> page_no;</span><br><span class="line">  <span class="type">trx_rseg_t</span> *rseg = <span class="literal">nullptr</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (slot = <span class="number">0</span>; slot &lt; TRX_SYS_N_RSEGS; slot++) &#123;</span><br><span class="line">    mtr.<span class="built_in">start</span>();</span><br><span class="line">    <span class="type">trx_sysf_t</span> *sys_header = <span class="built_in">trx_sysf_get</span>(&amp;mtr);</span><br><span class="line"></span><br><span class="line">    page_no = <span class="built_in">trx_sysf_rseg_get_page_no</span>(sys_header, slot, &amp;mtr);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (page_no != FIL_NULL) &#123;</span><br><span class="line">      space_id = <span class="built_in">trx_sysf_rseg_get_space</span>(sys_header, slot, &amp;mtr);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (!undo::<span class="built_in">is_active_truncate_log_present</span>(undo::<span class="built_in">id2num</span>(space_id))) &#123;</span><br><span class="line">        <span class="comment">/* Create the trx_rseg_t object.</span></span><br><span class="line"><span class="comment">        Note that all tablespaces with rollback segments</span></span><br><span class="line"><span class="comment">        use univ_page_size. (system, temp &amp; undo) */</span></span><br><span class="line">        rseg = <span class="built_in">trx_rseg_mem_initialize</span>(slot, space_id, page_no, univ_page_size);</span><br><span class="line"></span><br><span class="line">        <span class="built_in">ut_a</span>(rseg-&gt;id == slot);</span><br><span class="line"></span><br><span class="line">        purge_sys-&gt;rsegs_queue.<span class="built_in">push_back</span>(rseg);</span><br><span class="line"></span><br><span class="line">        trx_sys-&gt;rsegs.<span class="built_in">push_back</span>(rseg);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    mtr.<span class="built_in">commit</span>();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  undo::spaces-&gt;<span class="built_in">s_lock</span>();</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">auto</span> undo_space : undo::spaces-&gt;m_spaces) &#123;</span><br><span class="line">    <span class="comment">/* Remember the size of the purge queue before processing this</span></span><br><span class="line"><span class="comment">    undo tablespace. */</span></span><br><span class="line">    <span class="type">size_t</span> purge_queue_size = purge_queue-&gt;<span class="built_in">size</span>();</span><br><span class="line"></span><br><span class="line">    undo_space-&gt;<span class="built_in">rsegs</span>()-&gt;<span class="built_in">x_lock</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (slot = <span class="number">0</span>; slot &lt; FSP_MAX_ROLLBACK_SEGMENTS; slot++) &#123;</span><br><span class="line">      page_no = <span class="built_in">trx_rseg_get_page_no</span>(undo_space-&gt;<span class="built_in">id</span>(), slot);</span><br><span class="line"></span><br><span class="line">      <span class="comment">/* There are no gaps in an RSEG_ARRAY page. New rsegs</span></span><br><span class="line"><span class="comment">      are added sequentially and never deleted undo the</span></span><br><span class="line"><span class="comment">      undo tablespace is truncated. */</span></span><br><span class="line">      <span class="keyword">if</span> (page_no == FIL_NULL) &#123;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      mtr.<span class="built_in">start</span>();</span><br><span class="line"></span><br><span class="line">      <span class="comment">/* Create the trx_rseg_t object.</span></span><br><span class="line"><span class="comment">      Note that all tablespaces with rollback segments</span></span><br><span class="line"><span class="comment">      use univ_page_size. */</span></span><br><span class="line">      rseg = <span class="built_in">trx_rseg_mem_initialize</span>(slot, undo_space-&gt;<span class="built_in">id</span>(), page_no,</span><br><span class="line">                                     univ_page_size);</span><br><span class="line"></span><br><span class="line">      <span class="built_in">ut_a</span>(rseg-&gt;id == slot);</span><br><span class="line"></span><br><span class="line">      undo_space-&gt;<span class="built_in">rsegs</span>()-&gt;<span class="built_in">push_back</span>(rseg);</span><br><span class="line">      purge_sys-&gt;rsegs_queue.<span class="built_in">push_back</span>(rseg);</span><br><span class="line"></span><br><span class="line">      mtr.<span class="built_in">commit</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    undo_space-&gt;<span class="built_in">rsegs</span>()-&gt;<span class="built_in">x_unlock</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* If there are no undo logs in this explicit undo tablespace at</span></span><br><span class="line"><span class="comment">    startup, mark it empty so that it will not be used until the state</span></span><br><span class="line"><span class="comment">    recorded in the DD can be applied in apply_dd_undo_state(). */</span></span><br><span class="line">    <span class="keyword">if</span> (undo_space-&gt;<span class="built_in">is_explicit</span>() &amp;&amp; !undo_space-&gt;<span class="built_in">is_empty</span>()) &#123;</span><br><span class="line">      <span class="type">size_t</span> cur_size = purge_queue-&gt;<span class="built_in">size</span>();</span><br><span class="line">      <span class="keyword">if</span> (purge_queue_size == cur_size) &#123;</span><br><span class="line">        undo_space-&gt;<span class="built_in">set_empty</span>();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  undo::spaces-&gt;<span class="built_in">s_unlock</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="/_images/rseg-undo.png" alt="rseg-undo.png"></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/165457904">https://zhuanlan.zhihu.com/p/165457904</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/rseg/" rel="tag"># rseg</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/undo-log.html" rel="prev" title="Undo Log">
+                  <i class="fa fa-angle-left"></i> Undo Log
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/all-post.html" rel="next" title="TOC - all posts">
+                  TOC - all posts <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">mysqldev</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

@@ -129,12 +129,12 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-count">8</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-count">5</span>
         <span class="site-state-item-name">tags</span>
       </div>
   </nav>
@@ -266,6 +266,461 @@
 </li>
 <li><p>MySQL HTAP</p>
 </li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/rollback-segment.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="mysqldev">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/rollback-segment.html" class="post-title-link" itemprop="url">回滚段</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2027-08-17 09:52:01" itemprop="dateCreated datePublished" datetime="2027-08-17T09:52:01+08:00">2027-08-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-08-17 19:45:46" itemprop="dateModified" datetime="2025-08-17T19:45:46+08:00">2025-08-17</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="回滚段的分配"><a href="#回滚段的分配" class="headerlink" title="回滚段的分配"></a>回滚段的分配</h1><p>如前述，一个事务的产生若干undo log record，这些undo log record存储在若干undo page（一个undo log header page 和 若干undo log normal page）中，这一组undo page就是一个逻辑上的undo log segment。</p>
+<p>因为每个事务都有0~2个undo log segment，一组并发的事务就可能同时需要很多个undo log segment。这些undo log segment由回滚段统一管理，负责分配。</p>
+<p>Undo log segment的管理分为如下的层次：Undo Tablespace -&gt; Rollback Segment -&gt; Undo Log Slot。</p>
+<p>粗略地说，系统表空间有一个特殊页面记录了128个回滚段的位置，每个回滚段有1024个slot可以申请Undo Log Segment。</p>
+<h2 id="Rollback-Segment-Header"><a href="#Rollback-Segment-Header" class="headerlink" title="Rollback Segment Header"></a>Rollback Segment Header</h2><table>
+<thead>
+<tr>
+<th><strong>偏移量</strong></th>
+<th><strong>字段</strong></th>
+<th><strong>含义</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>TRX_RSEG_MAX_SIZE</td>
+<td>该回滚段最大大小（以页面个数计）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>TRX_RSEG_HISTORY_SIZE</td>
+<td>该undo log在history list中占用的page个数</td>
+</tr>
+<tr>
+<td>8</td>
+<td>TRX_RSEG_HISTORY</td>
+<td>history list链表节点</td>
+</tr>
+<tr>
+<td>24</td>
+<td>TRX_RSEG_FSEG_HEADER</td>
+<td>TODO</td>
+</tr>
+<tr>
+<td>34</td>
+<td>TRX_RSEG_UNDO_SLOTS</td>
+<td>undo slots，每个slot占用4个字节，包含space id和page no。</td>
+</tr>
+</tbody></table>
+<p><img src="/_images/rseg-header.png" alt="rseg-header.png"></p>
+<p>系统中总共有最多128个undo tablespace，128个Rollback Segment Header就分布在这些undo tablespace中。在系统表空间的TRX_SYS_PAGE_NO&#x3D;5号页面上，记录了128个Rollback Segment Header的位置信息。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">/** Read each rollback segment slot in the TRX_SYS page and the RSEG_ARRAY</span></span><br><span class="line"><span class="comment">page of each undo tablespace. Create trx_rseg_t objects for all rollback</span></span><br><span class="line"><span class="comment">segments found. This runs at database startup and initializes the in-memory</span></span><br><span class="line"><span class="comment">lists of trx_rseg_t objects. We need to look at all slots in TRX_SYS and</span></span><br><span class="line"><span class="comment">each RSEG_ARRAY page because we need to look for any existing undo log that</span></span><br><span class="line"><span class="comment">may need to be recovered by purge. No latch is needed since this is still</span></span><br><span class="line"><span class="comment">single-threaded startup.If we find existing rseg slots in TRX_SYS page</span></span><br><span class="line"><span class="comment">that reference undo tablespaces and have active undo logs, then quit.</span></span><br><span class="line"><span class="comment">They require an upgrade of undo tablespaces and that cannot happen with</span></span><br><span class="line"><span class="comment">active undo logs.</span></span><br><span class="line"><span class="comment">@param[in]      purge_queue     queue of rsegs to purge */</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">trx_rsegs_init_start</span><span class="params">(<span class="type">purge_pq_t</span> *purge_queue)</span> </span>&#123;</span><br><span class="line">  trx_sys-&gt;rseg_history_len = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="type">uint32_t</span> slot;</span><br><span class="line">  <span class="type">mtr_t</span> mtr;</span><br><span class="line">  <span class="type">space_id_t</span> space_id;</span><br><span class="line">  <span class="type">page_no_t</span> page_no;</span><br><span class="line">  <span class="type">trx_rseg_t</span> *rseg = <span class="literal">nullptr</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (slot = <span class="number">0</span>; slot &lt; TRX_SYS_N_RSEGS; slot++) &#123;</span><br><span class="line">    mtr.<span class="built_in">start</span>();</span><br><span class="line">    <span class="type">trx_sysf_t</span> *sys_header = <span class="built_in">trx_sysf_get</span>(&amp;mtr);</span><br><span class="line"></span><br><span class="line">    page_no = <span class="built_in">trx_sysf_rseg_get_page_no</span>(sys_header, slot, &amp;mtr);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (page_no != FIL_NULL) &#123;</span><br><span class="line">      space_id = <span class="built_in">trx_sysf_rseg_get_space</span>(sys_header, slot, &amp;mtr);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (!undo::<span class="built_in">is_active_truncate_log_present</span>(undo::<span class="built_in">id2num</span>(space_id))) &#123;</span><br><span class="line">        <span class="comment">/* Create the trx_rseg_t object.</span></span><br><span class="line"><span class="comment">        Note that all tablespaces with rollback segments</span></span><br><span class="line"><span class="comment">        use univ_page_size. (system, temp &amp; undo) */</span></span><br><span class="line">        rseg = <span class="built_in">trx_rseg_mem_initialize</span>(slot, space_id, page_no, univ_page_size);</span><br><span class="line"></span><br><span class="line">        <span class="built_in">ut_a</span>(rseg-&gt;id == slot);</span><br><span class="line"></span><br><span class="line">        purge_sys-&gt;rsegs_queue.<span class="built_in">push_back</span>(rseg);</span><br><span class="line"></span><br><span class="line">        trx_sys-&gt;rsegs.<span class="built_in">push_back</span>(rseg);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    mtr.<span class="built_in">commit</span>();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  undo::spaces-&gt;<span class="built_in">s_lock</span>();</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">auto</span> undo_space : undo::spaces-&gt;m_spaces) &#123;</span><br><span class="line">    <span class="comment">/* Remember the size of the purge queue before processing this</span></span><br><span class="line"><span class="comment">    undo tablespace. */</span></span><br><span class="line">    <span class="type">size_t</span> purge_queue_size = purge_queue-&gt;<span class="built_in">size</span>();</span><br><span class="line"></span><br><span class="line">    undo_space-&gt;<span class="built_in">rsegs</span>()-&gt;<span class="built_in">x_lock</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (slot = <span class="number">0</span>; slot &lt; FSP_MAX_ROLLBACK_SEGMENTS; slot++) &#123;</span><br><span class="line">      page_no = <span class="built_in">trx_rseg_get_page_no</span>(undo_space-&gt;<span class="built_in">id</span>(), slot);</span><br><span class="line"></span><br><span class="line">      <span class="comment">/* There are no gaps in an RSEG_ARRAY page. New rsegs</span></span><br><span class="line"><span class="comment">      are added sequentially and never deleted undo the</span></span><br><span class="line"><span class="comment">      undo tablespace is truncated. */</span></span><br><span class="line">      <span class="keyword">if</span> (page_no == FIL_NULL) &#123;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      mtr.<span class="built_in">start</span>();</span><br><span class="line"></span><br><span class="line">      <span class="comment">/* Create the trx_rseg_t object.</span></span><br><span class="line"><span class="comment">      Note that all tablespaces with rollback segments</span></span><br><span class="line"><span class="comment">      use univ_page_size. */</span></span><br><span class="line">      rseg = <span class="built_in">trx_rseg_mem_initialize</span>(slot, undo_space-&gt;<span class="built_in">id</span>(), page_no,</span><br><span class="line">                                     univ_page_size);</span><br><span class="line"></span><br><span class="line">      <span class="built_in">ut_a</span>(rseg-&gt;id == slot);</span><br><span class="line"></span><br><span class="line">      undo_space-&gt;<span class="built_in">rsegs</span>()-&gt;<span class="built_in">push_back</span>(rseg);</span><br><span class="line">      purge_sys-&gt;rsegs_queue.<span class="built_in">push_back</span>(rseg);</span><br><span class="line"></span><br><span class="line">      mtr.<span class="built_in">commit</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    undo_space-&gt;<span class="built_in">rsegs</span>()-&gt;<span class="built_in">x_unlock</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* If there are no undo logs in this explicit undo tablespace at</span></span><br><span class="line"><span class="comment">    startup, mark it empty so that it will not be used until the state</span></span><br><span class="line"><span class="comment">    recorded in the DD can be applied in apply_dd_undo_state(). */</span></span><br><span class="line">    <span class="keyword">if</span> (undo_space-&gt;<span class="built_in">is_explicit</span>() &amp;&amp; !undo_space-&gt;<span class="built_in">is_empty</span>()) &#123;</span><br><span class="line">      <span class="type">size_t</span> cur_size = purge_queue-&gt;<span class="built_in">size</span>();</span><br><span class="line">      <span class="keyword">if</span> (purge_queue_size == cur_size) &#123;</span><br><span class="line">        undo_space-&gt;<span class="built_in">set_empty</span>();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  undo::spaces-&gt;<span class="built_in">s_unlock</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="/_images/rseg-undo.png" alt="rseg-undo.png"></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/165457904">https://zhuanlan.zhihu.com/p/165457904</a></p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/undo-log.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="mysqldev">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/undo-log.html" class="post-title-link" itemprop="url">Undo Log</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2027-08-17 09:52:01" itemprop="dateCreated datePublished" datetime="2027-08-17T09:52:01+08:00">2027-08-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-08-17 19:45:59" itemprop="dateModified" datetime="2025-08-17T19:45:59+08:00">2025-08-17</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="Undo-Log-Header"><a href="#Undo-Log-Header" class="headerlink" title="Undo Log Header"></a>Undo Log Header</h1><p>如果一个事务update多次，则可能产生多条undo log record，这组undo log record视为一个undo log。</p>
+<p>一个undo log会先写一个undo log header （参见 <code>trx_undo_header_create</code>），记录产生这个undo log的事务信息以及指向该undo log中的undo log record的指针。也就是说undo log &#x3D; undo log header + undo log records。如果事务既有insert又有update，则会占用两个undo log header。</p>
+<p>undo log header结构如下：</p>
+<table>
+<thead>
+<tr>
+<th><strong>相对偏移量</strong></th>
+<th><strong>字段</strong></th>
+<th><strong>含义</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>TRX_UNDO_TRX_ID</td>
+<td>事务ID</td>
+</tr>
+<tr>
+<td>8</td>
+<td>TRX_UNDO_TRX_NO</td>
+<td>事务no，事务的提交序</td>
+</tr>
+<tr>
+<td>16</td>
+<td>TRX_UNDO_TRX_NO</td>
+<td>只在unpdate undo log中有定义。事务执行了某行的标记删除</td>
+</tr>
+<tr>
+<td>18</td>
+<td>TRX_UNDO_LOG_START</td>
+<td>该undo log的第一条record的偏移量</td>
+</tr>
+<tr>
+<td>20</td>
+<td>TRX_UNDO_FLAGS</td>
+<td>undo flags：<br/>+ TRX_UNDO_FLAG_XID &#x3D; 0x01<br/>+ TRX_UNDO_FLAG_GTID &#x3D; 0x02<br/>+ TRX_UNDO_FLAG_XA_PREPARE_GTID &#x3D; 0x04</td>
+</tr>
+<tr>
+<td>21</td>
+<td>TRX_UNDO_DICT_TRANS</td>
+<td>事务是dict相关事务</td>
+</tr>
+<tr>
+<td>22</td>
+<td>TRX_UNDO_TABLE_ID</td>
+<td>table id</td>
+</tr>
+<tr>
+<td>30</td>
+<td>TRX_UNDO_NEXT_LOG</td>
+<td>本页面内下一个undo log header（一个页面内允许有多个undo log header，其所属的undo log可能属于其他事务）的偏移量。</td>
+</tr>
+<tr>
+<td>32</td>
+<td>TRX_UNDO_PREV_LOG</td>
+<td>本页面内上一个undo log header的偏移量。</td>
+</tr>
+<tr>
+<td>34</td>
+<td>TRX_UNDO_HISTORY_NODE</td>
+<td>如果该undo log加入了history list，这个位置是list node</td>
+</tr>
+<tr>
+<td>46</td>
+<td></td>
+<td>TRX_UNDO_LOG_OLD_HDR_SIZE &#x3D; 34 + FLST_NODE_SIZE &#x3D; 46大小</td>
+</tr>
+</tbody></table>
+<h1 id="Undo-Page页面"><a href="#Undo-Page页面" class="headerlink" title="Undo Page页面"></a>Undo Page页面</h1><p>如果一个事务产生的undo log record量比较大，导致undo log header所在页面装不下这个事务的所有undo log record，就需要再分配一个新的页面用来存放溢出来的undo log record。</p>
+<p>这类undo log页面类型为<code>FIL_PAGE_UNDO_LOG</code>，其格式为：</p>
+<table>
+<thead>
+<tr>
+<th><strong>页内偏移量</strong></th>
+<th><strong>字段</strong></th>
+<th><strong>说明</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>38 (通用page header)</td>
+<td>TRX_UNDO_PAGE_TYPE</td>
+<td>TRX_UNDO_INSERT或TRX_UNDO_UPDATE之一</td>
+</tr>
+<tr>
+<td>40</td>
+<td>TRX_UNDO_PAGE_START</td>
+<td>存储undo record页面起始位置</td>
+</tr>
+<tr>
+<td>42</td>
+<td>TRX_UNDO_PAGE_FREE</td>
+<td>空闲区域起始位置</td>
+</tr>
+<tr>
+<td>44</td>
+<td><strong>TRX_UNDO_PAGE_NODE</strong></td>
+<td>undo page链表节点（大小为2*FLST_NODE_SIZE&#x3D;12字节）。</td>
+</tr>
+<tr>
+<td>56</td>
+<td></td>
+<td>链表节点结束</td>
+</tr>
+</tbody></table>
+<p>页面头总计TRX_UNDO_PAGE_HDR_SIZE&#x3D;56-38&#x3D;18字节。</p>
+<p>事务新分配页面并加到undo log header链表的逻辑见<code>trx_undo_add_page</code>。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 分配undo log页面，并串到undo log header所在page上。</span></span><br><span class="line"><span class="function"><span class="type">buf_block_t</span> *<span class="title">trx_undo_add_page</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">trx_t</span> *trx,               <span class="comment">/*!&lt; in: transaction */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">trx_undo_t</span> *undo,         <span class="comment">/*!&lt; in: undo log record一条记录的内存对象 */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">trx_undo_ptr_t</span> *undo_ptr, <span class="comment">/*!&lt; in: 事务的undo segment(trx-&gt;rsegs.m_redo或trx-&gt;rsegs.m_noredo) */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">mtr_t</span> *mtr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">page_t</span> *header_page;</span><br><span class="line">    <span class="type">buf_block_t</span> *new_block;</span><br><span class="line">    <span class="type">page_t</span> *new_page;</span><br><span class="line">    <span class="type">trx_rseg_t</span> *rseg;</span><br><span class="line">    ulint n_reserved;</span><br><span class="line"></span><br><span class="line">    rseg = undo_ptr-&gt;rseg;</span><br><span class="line">    <span class="comment">// undo log header所在page对象</span></span><br><span class="line">    header_page = <span class="built_in">trx_undo_page_get</span>(<span class="built_in">page_id_t</span>(undo-&gt;space, undo-&gt;hdr_page_no), undo-&gt;page_size, mtr);</span><br><span class="line">    <span class="built_in">fsp_reserve_free_extents</span>(&amp;n_reserved, undo-&gt;space, <span class="number">1</span>, FSP_UNDO, mtr);</span><br><span class="line">    <span class="comment">// 从改undo log所在segment申请一个空闲页（segment参见后面说明）</span></span><br><span class="line">    new_block = <span class="built_in">fseg_alloc_free_page_general</span>(TRX_UNDO_SEG_HDR + TRX_UNDO_FSEG_HEADER + header_page,</span><br><span class="line">                                           undo-&gt;top_page_no + <span class="number">1</span>, FSP_UP, <span class="literal">true</span>, mtr, mtr);</span><br><span class="line">    <span class="built_in">fil_space_release_free_extents</span>(undo-&gt;space, n_reserved);</span><br><span class="line"></span><br><span class="line">    undo-&gt;last_page_no = new_block-&gt;page.id.<span class="built_in">page_no</span>();</span><br><span class="line">    new_page = <span class="built_in">buf_block_get_frame</span>(new_block);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 初始化Undo Page的TRX_UNDO_PAGE_HDR各个字段（TRX_UNDO_PAGE_TYPE、TRX_UNDO_PAGE_START、TRX_UNDO_PAGE_FREE）</span></span><br><span class="line">    <span class="built_in">trx_undo_page_init</span>(new_page, undo-&gt;type, mtr);</span><br><span class="line">    <span class="comment">// 将这个新页面串到undo log header的链表中（通过TRX_UNDO_PAGE_LIST节点）</span></span><br><span class="line">    <span class="built_in">flst_add_last</span>(header_page + TRX_UNDO_SEG_HDR + TRX_UNDO_PAGE_LIST, new_page + TRX_UNDO_PAGE_HDR + TRX_UNDO_PAGE_NODE, mtr);</span><br><span class="line">    undo-&gt;size++;</span><br><span class="line">    rseg-&gt;<span class="built_in">incr_curr_size</span>();</span><br><span class="line">    <span class="keyword">return</span> new_block;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="Undo-Log-Segment-Undo-Segment"><a href="#Undo-Log-Segment-Undo-Segment" class="headerlink" title="Undo Log Segment (Undo Segment)"></a>Undo Log Segment (Undo Segment)</h1><p>至此知，一个事务产生的undo log record可能涉及多个undo page，且这些undo page会串成链。实际上，每个事务会使用两个undo page的链，一个针对普通表、一个针对临时表，二者主要差异是临时表产生的undo不需要持久化。前面说过，逻辑上一组页面称为segment，undo page所在的segment称之为undo log segment。</p>
+<p><code>trx_undo_add_page</code>入参中undo_ptr就是指这样的segment。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">trx_t</span></span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">	<span class="type">trx_rsegs_t</span> rsegs;</span><br><span class="line">    ...</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">trx_rsegs_t</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">trx_undo_ptr_t</span> m_redo; <span class="comment">// 指向普通表（undo数据未来需要恢复）的回滚段</span></span><br><span class="line">	<span class="type">trx_undo_ptr_t</span> m_noredo; <span class="comment">// 指向临时表（undo数据未来不需要恢复）的回滚段</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 表示事务的回滚段</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">trx_undo_ptr_t</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">trx_rseg_t</span> *rseg; <span class="comment">// 事务的回滚段</span></span><br><span class="line">	<span class="type">trx_undo_t</span> *insert_undo; <span class="comment">// insert undo log指针</span></span><br><span class="line">	<span class="type">trx_undo_t</span> *update_undo; <span class="comment">// update undo log指针</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Undo-Log-Segment-Header"><a href="#Undo-Log-Segment-Header" class="headerlink" title="Undo Log Segment Header"></a>Undo Log Segment Header</h2><p>Undo Log Segment的第一个页面会额外记录该segment的信息，称之为undo log segment header，格式如下：</p>
+<table>
+<thead>
+<tr>
+<th><strong>页内偏移量</strong></th>
+<th><strong>字段</strong></th>
+<th><strong>含义</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>56</td>
+<td>TRX_UNDO_STATE</td>
+<td>回滚段状态</td>
+</tr>
+<tr>
+<td>58</td>
+<td>TRX_UNDO_LAST_LOG</td>
+<td>该回滚段header页面中最后一条undo log header的偏移量（一个header允许存在多个undo log header）。</td>
+</tr>
+<tr>
+<td>60</td>
+<td>TRX_UNDO_FSEG_HEADER</td>
+<td>该回滚段header所在的file segment的header</td>
+</tr>
+<tr>
+<td>70</td>
+<td>TRX_UNDO_PAGE_LIST</td>
+<td>[仅在回滚段第一个页面有定义]，该回滚段的页面链表起始节点。关联到其他非第一个页面的TRX_UNDO_PAGE_NODE字段。</td>
+</tr>
+<tr>
+<td>86</td>
+<td></td>
+<td>回滚段header结束位置。</td>
+</tr>
+</tbody></table>
+<p>Undo Log Segment状态取值：</p>
+<ul>
+<li>TRX_UNDO_ACTIVE</li>
+<li>TRX_UNDO_CACHED</li>
+<li>TRX_UNDO_TO_FREE</li>
+<li>TRX_UNDO_TO_PURGE</li>
+<li>TRX_UNDO_PREPARED_80028</li>
+<li>TRX_UNDO_PREPARED</li>
+<li>TRX_UNDO_PREPARED_IN_TC</li>
+</ul>
+<h2 id="Undo-Log-Header-Page"><a href="#Undo-Log-Header-Page" class="headerlink" title="Undo Log Header Page"></a>Undo Log Header Page</h2><p>结合前面的描述，综合来看，一个Undo Log Segment的第一个页面开头记录的信息包含3种header：</p>
+<ul>
+<li>通用页面header &#x3D; 0~38字节，共TRX_UNDO_PAGE_HDR&#x3D;38字节</li>
+<li>Undo Page Header &#x3D; 38~56字节，共TRX_UNDO_PAGE_HDR_SIZE&#x3D;18字节</li>
+<li>Undo log segment header &#x3D; 56~86字节，共30字节</li>
+</ul>
+<p>这之后才是undo log header和undo log record。</p>
+<p><img src="/_images/undo-log-header.png" alt="undo-log-header.png"></p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/undo-log-record.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="mysqldev">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/undo-log-record.html" class="post-title-link" itemprop="url">Undo Log Record简介</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2025-08-17 19:36:21 / Modified: 19:38:02" itemprop="dateCreated datePublished" datetime="2025-08-17T19:36:21+08:00">2025-08-17</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>参考：<br><a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.0/en/innodb-undo-logs.html">https://dev.mysql.com/doc/refman/8.0/en/innodb-undo-logs.html</a><br><a target="_blank" rel="noopener" href="https://jimmy2angel.github.io/2019/05/07/InnoDB-undo-log/">https://jimmy2angel.github.io/2019/05/07/InnoDB-undo-log/</a><br><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/165457904">https://zhuanlan.zhihu.com/p/165457904</a></p>
+<p>Undo作用<br>undo记录了数据修改的前镜像，用来支持事务回滚、快照读。</p>
+<p>Undo log record格式<br>Undo log record类型<br>undo log record共有如下几种类型：</p>
+<ul>
+<li>TRX_UNDO_INSERT_REC：刚刚执行insert对应的undo log record</li>
+<li>TRX_UNDO_DEL_MARK_REC：标记删除一行</li>
+<li>TRX_UNDO_UPD_EXIST_REC：更新已经存在的行</li>
+<li>TRX_UNDO_UPD_DEL_REC：将已经标记删除的行update为未删除行</li>
+</ul>
+<p><img src="/_images/undo-log-record.png" alt="undo-log-record.png"></p>
+<p>Insert操作undo日志<br>参见 trx_undo_page_report_insert函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">static</span> ulint <span class="title">trx_undo_page_report_insert</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">page_t</span> *undo_page,           <span class="comment">/*!&lt; in: undo log page */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">trx_t</span> *trx,                  <span class="comment">/*!&lt; in: transaction */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">dict_index_t</span> *index,         <span class="comment">/*!&lt; in: clustered index */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">const</span> <span class="type">dtuple_t</span> *clust_entry, <span class="comment">/*!&lt; in: index entry which will be inserted to the clustered index */</span></span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">mtr_t</span> *mtr)</span>                  <span class="comment">/*!&lt; in: mtr */</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ulint first_free;</span><br><span class="line">    byte *ptr;</span><br><span class="line">    ulint i;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">ut_ad</span>(<span class="built_in">mach_read_from_2</span>(undo_page + TRX_UNDO_PAGE_HDR + TRX_UNDO_PAGE_TYPE) == TRX_UNDO_INSERT);</span><br><span class="line"></span><br><span class="line">    first_free = <span class="built_in">mach_read_from_2</span>(undo_page + TRX_UNDO_PAGE_HDR + TRX_UNDO_PAGE_FREE);</span><br><span class="line">    ptr = undo_page + first_free;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// ptr指向当前record开头地址。</span></span><br><span class="line">    <span class="comment">// 预留2字节用来存放下一条record</span></span><br><span class="line">    ptr += <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 填充undo record类型、undo_no、table id</span></span><br><span class="line">    *ptr++ = TRX_UNDO_INSERT_REC;</span><br><span class="line">    ptr += <span class="built_in">mach_u64_write_much_compressed</span>(ptr, trx-&gt;undo_no);</span><br><span class="line">    ptr += <span class="built_in">mach_u64_write_much_compressed</span>(ptr, index-&gt;table-&gt;id);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 填充能够确定该行的唯一键所涉及的列。</span></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="built_in">dict_index_get_n_unique</span>(index); i++) &#123;</span><br><span class="line">        <span class="type">const</span> <span class="type">dfield_t</span> *field = <span class="built_in">dtuple_get_nth_field</span>(clust_entry, i);</span><br><span class="line">        ulint flen = <span class="built_in">dfield_get_len</span>(field);</span><br><span class="line">        ptr += <span class="built_in">mach_write_compressed</span>(ptr, flen);</span><br><span class="line">        <span class="keyword">if</span> (flen != UNIV_SQL_NULL &amp;&amp; flen != <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="built_in">ut_memcpy</span>(ptr, <span class="built_in">dfield_get_data</span>(field), flen);</span><br><span class="line">            ptr += flen;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (index-&gt;table-&gt;n_v_cols) &#123;</span><br><span class="line">        <span class="built_in">trx_undo_report_insert_virtual</span>(undo_page, index-&gt;table, clust_entry, &amp;ptr);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1. 将当前偏移量追加到ptr指向的位置</span></span><br><span class="line">    <span class="comment">// 2. 更新page的TRX_UNDO_PAGE_FREE字段</span></span><br><span class="line">    <span class="comment">// 3. 预留的两字节更新为本条记录尾部字节位置</span></span><br><span class="line">    <span class="keyword">return</span> (<span class="built_in">trx_undo_page_set_next_prev_and_add</span>(undo_page, ptr, mtr));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>Delete操作undo日志<br>参考trx_undo_page_report_modify函数，实际上Update操作对应的undo日志也是这个函数来构建。<br>格式参考图示。</p>
+<p>Update操作undo日志<br>这里描述一个简单的场景：更新非主键列且列宽不变，即就地更新。格式参考图示。<br>其他场景：</p>
+<ul>
+<li>更新主键场景：标记删除旧行，写入新行。</li>
+<li>更新非主键但列宽变大：先物理删除该行，然后找新空间写入整行。</li>
 </ul>
 
       
