@@ -129,9 +129,13 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">2</span>
+          <span class="site-state-item-count">5</span>
           <span class="site-state-item-name">posts</span>
         </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">tags</span>
       </div>
   </nav>
 </div>
@@ -192,7 +196,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-08-17 19:08:41" itemprop="dateModified" datetime="2025-08-17T19:08:41+08:00">2025-08-17</time>
+      <time title="Modified: 2025-08-17 19:35:31" itemprop="dateModified" datetime="2025-08-17T19:35:31+08:00">2025-08-17</time>
     </span>
 
   
@@ -208,12 +212,27 @@
           <h1 id="MySQL原理源码与实践"><a href="#MySQL原理源码与实践" class="headerlink" title="MySQL原理源码与实践"></a>MySQL原理源码与实践</h1><ul>
 <li><p>MySQL简介</p>
 </li>
+<li><p>基础数据结构</p>
+<ul>
+<li>list</li>
+<li>lfhash</li>
+</ul>
+</li>
 <li><p>SQL层</p>
 <ul>
 <li>SQL语法解析</li>
 <li>SQL优化器</li>
-<li>线程池</li>
-<li>Binlog</li>
+</ul>
+</li>
+<li><p>数据字典</p>
+</li>
+<li><p>线程池</p>
+</li>
+<li><p>审计</p>
+</li>
+<li><p>Binlog</p>
+<ul>
+<li>Binlog复制</li>
 </ul>
 </li>
 <li><p>InnoDB存储引擎</p>
@@ -222,17 +241,262 @@
 <li>Tablespace</li>
 </ul>
 </li>
+<li>Redo Log    </li>
+<li>Undo Log</li>
+<li>B+Tree</li>
+<li>Buffer Pool</li>
 <li>InnoDB事务系统</li>
 <li>InnoDB事务锁系统</li>
+<li>PurgeSys</li>
+<li>Crash Recovery</li>
 </ul>
 </li>
 <li><p>RocksDB存储引擎</p>
+<ul>
+<li>RocksDB handler</li>
+<li>RocksDB存储引擎架构</li>
+</ul>
 </li>
 <li><p>MySQL事务</p>
+<ul>
+<li>XA事务</li>
+</ul>
 </li>
 <li><p>MySQL DDL</p>
 </li>
+<li><p>MySQL HTAP</p>
+</li>
 </ul>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/mysql-arch.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="mysqldev">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/mysql-arch.html" class="post-title-link" itemprop="url">MySQL架构</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2025-08-17 19:28:36 / Modified: 19:31:25" itemprop="dateCreated datePublished" datetime="2025-08-17T19:28:36+08:00">2025-08-17</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>MySQL架构如图。</p>
+<p><img src="/_images/mysql-arch.png" alt="mysql-arch.png"></p>
+<p>MySQL支持可插拔的存储引擎，SQL层与存储引擎层通过handler抽象层对接。</p>
+<p>参考：</p>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.0/en/pluggable-storage-overview.html">https://dev.mysql.com/doc/refman/8.0/en/pluggable-storage-overview.html</a></li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/mysql-src-dir.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="mysqldev">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/mysql-src-dir.html" class="post-title-link" itemprop="url">MySQL源码目录</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2025-08-17 19:27:27 / Modified: 19:28:11" itemprop="dateCreated datePublished" datetime="2025-08-17T19:27:27+08:00">2025-08-17</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="MySQL源码目录"><a href="#MySQL源码目录" class="headerlink" title="MySQL源码目录"></a>MySQL源码目录</h1><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">├── client   # 包含客户端源码和一些客户端工具如mysqlbinlog、mysqldump、mysqladmin等</span><br><span class="line">├── cmake   <span class="meta"># cmake的一些辅助函数、变量定义等等</span></span><br><span class="line">├── CMakeLists.txt   # 项目根目录的cmake入口</span><br><span class="line">├── components   # 组件工具，例如keyring秘钥管理等</span><br><span class="line">├── config.h.cmake   <span class="meta"># cmake配置项，例如 DISABLE_PSI_THREAD</span></span><br><span class="line">├── configure.cmake   <span class="meta"># configure配置项，例如 WITH_ASAN 等等</span></span><br><span class="line">├── Docs   # 介绍如何build、介绍存储过程实现规范</span><br><span class="line">├── Doxyfile-ignored   # Doxyfile相关</span><br><span class="line">├── Doxyfile.in   # Doxyfile相关</span><br><span class="line">├── doxygen_resources   # Doxyfile相关</span><br><span class="line">├── extra   # 额外工具如curl、libevent、lz4、zlib、rapidjson等</span><br><span class="line">├── include   # 头文件目录，包含一些基本工具类的h文件，如my_md<span class="number">5.</span>h、my_list.h等等</span><br><span class="line">├── INSTALL   # 二进制安装包和手册的下载地址</span><br><span class="line">├── libbinlogevents   # 解析binlog的库源码</span><br><span class="line">├── libbinlogstandalone   # TODO</span><br><span class="line">├── libchangestreams   # TODO</span><br><span class="line">├── libmysql   # 客户端SDK源码</span><br><span class="line">├── libservices   # 动态服务框架</span><br><span class="line">├── LICENSE   # 版权声明</span><br><span class="line">├── man   # 手册源码</span><br><span class="line">├── mysql-test   <span class="meta"># mysql-test测试根目录</span></span><br><span class="line">├── MYSQL_VERSION   # MySQL版本号</span><br><span class="line">├── mysys   # 基础工具类实现源码如my_md<span class="number">5.</span>c</span><br><span class="line">├── packaging   # 打包工具</span><br><span class="line">├── plugin   # 插件</span><br><span class="line">├── README   <span class="meta"># readme文件</span></span><br><span class="line">├── router   # TODO</span><br><span class="line">├── run_doxygen.cmake   # Doxyfile相关</span><br><span class="line">├── scripts   # 系统脚本，包括mysqld_safe.sh、</span><br><span class="line">├── share    # 包括字符集和错误码等信息</span><br><span class="line">├── sql   # SQL层实现</span><br><span class="line">├── sql-common   # 服务端和客户端公用的一些功能代码</span><br><span class="line">├── storage   # 存储引擎</span><br><span class="line">├── strings   # 字符编码工具类</span><br><span class="line">├── support-files   # TODO</span><br><span class="line">├── testclients    # 客户端测试框架</span><br><span class="line">├── unittest    # 单元测试</span><br><span class="line">├── utilities    # 公用的一些工具类如lz4使用源码</span><br><span class="line">└── vio   # 虚拟网络IO层</span><br></pre></td></tr></table></figure>
+
+
+<h1 id="版权介绍"><a href="#版权介绍" class="headerlink" title="版权介绍"></a>版权介绍</h1><p>8.0.33源码采用GPLv2协议，主要特点：</p>
+<ol>
+<li>可以复制分发该license，但是不允许修改该license</li>
+<li>修改了代码后要在显著位置带上修改声明</li>
+<li>TODO</li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://example.com/mysql-history.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="mysqldev">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | MySQL Notes">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/mysql-history.html" class="post-title-link" itemprop="url">MySQL历史与版本</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2025-08-17 19:25:19 / Modified: 19:26:48" itemprop="dateCreated datePublished" datetime="2025-08-17T19:25:19+08:00">2025-08-17</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="MySQL历史"><a href="#MySQL历史" class="headerlink" title="MySQL历史"></a>MySQL历史</h1><p>MySQL最初为MySQL AB公司开发，该公司于2008年被Sun Microsystem收购，2009年Oracle收购了Sun Microsystem。MySQL目前由Oracle公司研发团队作为官方团队开发并发行。<br>MySQL可能是最流行的关系数据库，尤其是在互联网企业中应用很广。开源建站软件套件LAMP中的M即MySQL。</p>
+<h1 id="MySQL版本"><a href="#MySQL版本" class="headerlink" title="MySQL版本"></a>MySQL版本</h1><h2 id="Oracle官方版本"><a href="#Oracle官方版本" class="headerlink" title="Oracle官方版本"></a>Oracle官方版本</h2><h3 id="MySQL社区版"><a href="#MySQL社区版" class="headerlink" title="MySQL社区版"></a>MySQL社区版</h3><p>开源社区免费版本，源码见 <a target="_blank" rel="noopener" href="https://github.com/mysql/mysql-server">https://github.com/mysql/mysql-server</a></p>
+<h3 id="MySQL企业版"><a href="#MySQL企业版" class="headerlink" title="MySQL企业版"></a>MySQL企业版</h3><p>Oracle提供的付费企业版，支持透明加密、备份、高可用、审计、监控、Workbench、技术支持服务等企业级特性。</p>
+<h3 id="MySQL-Cluster"><a href="#MySQL-Cluster" class="headerlink" title="MySQL Cluster"></a>MySQL Cluster</h3><p>主打扩展性，支持多副本、分布式查询、内存型实时数据库、自动分区等。</p>
+<h3 id="MySQL-Heatwave"><a href="#MySQL-Heatwave" class="headerlink" title="MySQL Heatwave"></a>MySQL Heatwave</h3><p>融合OLTP &amp; OLAP &amp; ML的一体化解决方案，可在OCI(Oracle Cloud Infrastrucutre)、AWS、Azure云上部署。</p>
+<h2 id="Percona-Server"><a href="#Percona-Server" class="headerlink" title="Percona Server"></a>Percona Server</h2><p>MySQL的一个知名的发行版，由原MySQL测试团队主导推出，免费提供了一些MySQL企业版的付费特性（如支持线程池，支持RocksDB存储引擎），以及丰富的生态运维工具如xtrabackup、percona-toolkit等。</p>
+<h2 id="MariaDB"><a href="#MariaDB" class="headerlink" title="MariaDB"></a>MariaDB</h2><p>MySQL被Oracle收购后，原团队Monty等人担心MySQL的开放性，因此推出了MariaDB。MariaDB也支持了MySQL企业版的一些企业级特性如线程池、审计等功能。MariaDB最初目标是兼容MySQL数据格式，但随着各自项目的演化，逐渐无法继续兼容。</p>
 
       
     </div>
