@@ -4,184 +4,104 @@
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8">
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+	
 	<!-- title -->
 	
-<title>
-    
-        TOC - all posts&nbsp;&nbsp;✦&nbsp;
-    
-    MySQL Notes
-</title>
-
+	<title>
+	
+		TOC - all posts | 
+	 
+	MySQL Notes
+	</title>
+	
 	<!-- keywords,description -->
 	
-
-<meta name="author" content="mysqldev" />
-
-<meta name="keywords" content="" />
-
-<meta name="description" content="
-MySQL原理源码与实践
-
-MySQL简介
-SQL层
-SQL语法解析
-SQL优化器
-线程池
-Binlog
-
-
-
-
-InnoDB存储引擎
-
-数据存储空间
-Tablespace
-
-
-InnoDB事务系统
-InnoDB事务锁系统
-
-
-RocksDB存储引擎
-
-MySQL事务
-
-MySQL DDL
-
-
-" />
+	
 
 	<!-- favicon -->
 	
-		<link rel="shortcut icon" href="/favicon.ico">
-	
 
-	<!-- css, script -->
-	
-<link rel="stylesheet" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css">
+
+	<!-- search -->
+	<script>
+		var searchEngine = "";
+		if(typeof searchEngine == "undefined" || searchEngine == null || searchEngine == ""){
+			searchEngine = "https://www.google.com/search?q=";
+		}
+		var homeHost = "";
+		if(typeof homeHost == "undefined" || homeHost == null || homeHost == ""){
+			homeHost = window.location.host;
+		}
+	</script>
+
 
 	
 <link rel="stylesheet" href="/css/main.css">
 
+	
+<link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/4.7.0/css/font-awesome.min.css">
 
 	
-<script src="https://cdn.jsdelivr.net/npm/darkreader@4.9.58/darkreader.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.17.1/build/styles/darcula.min.css">
+
+	
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css">
+
+
+	
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+
+	
+<script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script>
+
+	
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.17.1/build/highlight.min.js"></script>
+
+	
+<script src="https://cdn.jsdelivr.net/npm/jquery-pjax@2.0.1/jquery.pjax.min.js"></script>
 
 	
 <script src="/js/main.js"></script>
 
 
-	<!-- custom css and js -->
 	
-
-
-
-
-
-	<!-- search -->
-	<script async>
-	window.searchEngine = "https://www.google.com/search?q=" ?? "https://www.google.com/search?q=";
-	window.homeHost = "http://example.com" ?? window.location.host;
-</script>
-
-	<!-- statistics -->
 	
-	<script async reload src="https://cn.vercount.one/js"></script>
-
-
-	<!-- analysis -->
-	
-
 
 <meta name="generator" content="Hexo 7.3.0"></head>
 
 <body>
 	<header id="header">
-	<a id="title" href="/" class="logo">
-		<img id="logo" src="/favicon-white.ico" alt="logo"/>
-		MySQL Notes
-	</a>
+    <a id="title" href="/" class="logo">MySQL Notes</a>
 
 	<ul id="menu">
-		
-			<li class="menu-item">
-				<a href="/about" class="menu-item-link">About</a>
-			</li>
-		
-		
-			<li class="menu-item">
-				<a href="/tags" class="menu-item-link">Tags</a>
-			</li>
-		
-		
-			<li class="menu-item">
-				<a href="/categories" class="menu-item-link">Categories</a>
-			</li>
-		
-		
-			<li class="menu-item">
-				<a href="" class="menu-item-link item-icon" target="_blank">
-					<i class="fa fa-github fa-2x"></i>
-				</a>
-			</li>
-		
-		
-			<li class="menu-item dark-mode">
-				<a href="#" class="menu-item-link item-icon">
-					<i class="fa fa-moon-o fa-2x"></i>
-				</a>
-			</li>
+    
 
-			<script async>
-				const localModel = localStorage.getItem("darkModel");
-				const darkModel = !localModel ? 0 : localModel;
+    
 
-				const darkModeIcon = document.querySelector("#menu .dark-mode i");
+    
 
-				if (darkModel == 1) {
-					darkModeIcon.classList.replace("fa-moon-o", "fa-sun-o");
-					DarkReader.enable({
-						brightness: 100,
-						contrast: 90,
-						sepia: 10,
-					});
-				}
-
-				darkModeIcon.addEventListener("click", () => {
-					const isMoon = darkModeIcon.classList.contains("fa-moon-o");
-					darkModeIcon.classList.toggle("fa-moon-o", !isMoon);
-					darkModeIcon.classList.toggle("fa-sun-o", isMoon);
-					localStorage.setItem("darkModel", isMoon ? 1 : 0);
-					isMoon ? DarkReader.enable({ brightness: 100, contrast: 90, sepia: 10 }) : DarkReader.disable();
-				});
-			</script>
-		
+    
+  
+    
 	</ul>
 </header>
 
-<script async>
-	let startHeight = 0;
-	window.addEventListener("scroll", () => {
-		const { scrollY: endHeight } = window;
-		const distance = endHeight - startHeight;
-		startHeight = endHeight;
-		document.querySelector("#header").style.display = distance > 0 && endHeight > 50 ? "none" : "";
-	});
-</script>
-	<div id="sidebar">
+	
+<div id="sidebar">
 	<button id="sidebar-toggle" class="toggle" ><i class="fa fa-arrow-right " aria-hidden="true"></i></button>
+	
 	<div id="site-toc">
-		<input id="search-input" class="search-input" type="search" placeholder="Press Enter to search the entire site">
+		<input id="search-input" class="search-input" type="search" placeholder="Press Enter to search">
 		<div id="tree">
 			
+
 			
 							<ul>
 								<li class="file active">
-									<a href="/TOC.html" title="/TOC.htm">
-									
-										TOC
-									
+									<a href="/TOC.html">
+                     
+										    TOC
+                     
 									</a>
 								</li>
 								<div class="article-toc" style="display: none;"></div>
@@ -189,10 +109,10 @@ MySQL DDL
 			
 							<ul>
 								<li class="file">
-									<a href="/test.html" title="/test.htm">
-									
-										test
-									
+									<a href="/test.html">
+                     
+										    test
+                     
 									</a>
 								</li>
 								<div class="article-toc" style="display: none;"></div>
@@ -202,26 +122,34 @@ MySQL DDL
 	</div>
 </div>
 
-	<div id="content">
+	<!-- 引入正文 -->
+	<div id="content" class="content">
 		<h1 id="article-title">
 	TOC - all posts
 </h1>
 
+<!-- meta -->
 <div class="article-meta">
-	<span> mysqldev </span>
-	<span> 2023-08-17 09:52:01 </span>
-	<div id="article-categories">
-		
-			<span>Categories：</span>
-			
-		
-		
-			<span>Tags：</span>
-			
-		
-	</div>
+	
+
+	<span>mysqldev</span>
+	<span>2023-08-17 09:52:01</span>
+
+  <div id="article-categories">
+    
+		  <span>Categories：</span>
+      
+    
+
+    
+		    <span>Tags：</span>
+        
+    
+  </div>
+
 </div>
 
+<!-- content -->
 <div id="article-content">
 	<ul>
 <li><p>MySQL原理源码与实践</p>
@@ -254,174 +182,62 @@ MySQL DDL
 </li>
 </ul>
 
-	
-    <div class="copyright-box">
-		<div class="license-box">
-			<div class="license-header">
-				
-				<div class="license-title">
-					TOC - all posts
-				</div>
-				<div class="license-subTitle">http://example.com/TOC.html</div>
-			</div>
-			<div class="license-meta">
-				
-					<div class="license-meta-item">
-						<div>Author</div>
-						<div>
-							<a href="">
-								mysqldev
-							</a>
-						</div>
-					</div>
-				
-				
-					<div class="license-meta-item license-meta-date">
-					<div>Posted on</div>
-					<div>August 17, 2023</div>
-					</div>
-				
-				
-				
-				
-					<div class="license-meta-item">
-					<div>Licensed under</div>
-					<div>
-						
-						
-						
-							<a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
-								<span class="hint--top hint--rounded" aria-label="BY - Attribution">
-									BY - Attribution
-								</span>
-							</a>
-						
-						
-					</div>
-					</div>
-				
-			</div>
-		</div>
-	</div>
-
 </div>
 
+<!-- post-guide -->
 
-    
-
-    
-
-    
-        
-        <script async reload>
-            fetch("https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/tokyo-night-dark.css")
-                .then((response) => response.text())
-                .then((cssContent) => {
-                    const style = document.createElement("style");
-                    
-                        cssContent = cssContent
-                            .replace(".hljs-code,", "")
-                            .replaceAll("_", " ")
-                            .replaceAll("hljs-", "hljs .")
-                            .replaceAll(".hljs", " .highlight")
-                            .replaceAll(".built in", ".built_in")
-                            .replaceAll("title.", "");
-                        const figures = document.querySelectorAll("figure.highlight td.gutter");
-                        figures.forEach(figure=>{
-                            figure.classList.add("highlight");
-                        })
-                    
-                    style.innerHTML = cssContent;
-                    document.head.appendChild(style);
-                })
-                .catch((error) => {
-                    console.error("Error loading CSS:", error);
-                });
-        </script>
-    
-
-
-
-
-
-    <script reload>
-        var targets = document.querySelectorAll("figure.highlight, #article-content > pre:not(.highlight,.hljs)");
-        targets.forEach((block) => {
-            const copyBtn = document.createElement("button");
-            copyBtn.innerHTML = `<i class="fa fa-clone" aria-hidden="true"></i>`;
-            copyBtn.className = "code-copy";
-
+    <div class="post-guide">
+        <div class="item left">
             
-                copyBtn.style.color = "#fff";
+              <a href="/test.html">
+                  <i class="fa fa-angle-left" aria-hidden="true"></i>
+                  test
+              </a>
             
-
-            copyBtn.addEventListener("click", () => {
-                const text = block.querySelector("td.code")?.textContent || block.querySelector("code")?.textContent;
-                navigator.clipboard.writeText(text).then(() => {
-                    copyBtn.innerHTML = "Copied!";
-                    setTimeout(() => {
-                        copyBtn.innerHTML = `<i class="fa fa-clone" aria-hidden="true"></i>`;
-                    }, 2000);
-                });
-            });
-            block.appendChild(copyBtn);
-        });
-    </script>
+        </div>
+        <div class="item right">
+            
+        </div>
+    </div>
 
 
+<!-- comment - giscus -->
 
 
-<div class="post-guide">
-	<div class="item left">
+<!-- comment - valine -->
+
+
+<script>
 	
-	</div>
-	<div class="item right">
-		
-		<a href="/test.html">
-			test
-			<i class="fa fa-angle-right" aria-hidden="true"></i>
-		</a>
-		
-	</div>
-</div>
-
-
-
-
-	</div>
-
-	<div id="footer">
-	<div>
-		
-			
-				©2024<span>-</span><span>2025
-			
-			
-			</span>
-			<a href="">
-				mysqldev
-			</a>
-		
-		
-			<span id="busuanzi_container_site_pv">
-				Views
-				<span id="vercount_value_page_pv"></span>
-			</span>
-			<span id="busuanzi_container_site_uv">
-				Visitors
-				<span id="vercount_value_site_pv"></span>
-			</span>
-		
-	</div>
-	 <div> Theme <a href="https://github.com/Exisi/hexo-theme-node-tree"	target="_blank">Node-Tree</a> Powered by <a href="https://hexo.io" target="_blank">Hexo</a> </div> 
-</div>
-	<button id="totop-toggle" class="toggle"><i class="fa fa-angle-double-up" aria-hidden="true"></i></button>
-
-<script async>
-    const topTopBtn = document.querySelector("#totop-toggle");
-	topTopBtn.addEventListener("click", () => {
-		window.scrollTo({ top: 0, behavior: "smooth" });
-	});
+	
 </script>
+
+	</div>
+	<div id="footer">
+	<p>
+	©<span id="footerYear-start"></span>-<span id="footerYear-end"></span>
+
+	
+	    <a href="/">mysqldev</a>
+	
+	
+	
+	<br>
+	Theme <a href="//github.com/wujun234/hexo-theme-tree" target="_blank">Tree</a>
+	by <a href="//wujun.me" target="_blank">Wu Jun</a>
+	Powered by <a href="//hexo.io" target="_blank">Hexo</a>
+	</p>
+</div>
+
+
+<script type="text/javascript">
+	document.getElementById('footerYear-start').innerHTML = new Date().getFullYear() + '';
+</script>
+
+<script type="text/javascript">
+	document.getElementById('footerYear-end').innerHTML = new Date().getFullYear() + '';
+</script>
+
+	<button id="totop-toggle" class="toggle"><i class="fa fa-angle-double-up" aria-hidden="true"></i></button>
 </body>
 </html>

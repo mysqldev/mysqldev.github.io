@@ -1,705 +1,371 @@
-window.onload = function () {
-	wrapImageWithLightBox();
+$(document).ready(function () {
+  hljs.initHighlightingOnLoad();
+  clickTreeDirectory();
+  serachTree();
+  // pjaxLoad();
+  showArticleIndex();
+  switchTreeOrIndex();
+  scrollToTop();
+  pageScroll();
+  wrapImageWithFancyBox();
+});
 
-	treeNodeDirClickEvent();
-	switchTreeOrIndex();
-	toggleTreeNodes();
-
-	pureFetchLoading();
-	setupNavigation();
-
-	activeArticleToc();
-
-	searchTreeNode();
-};
-
-/**
- * Wrap images with light box support.
- */
-function wrapImageWithLightBox() {
-	const imageList = document.querySelectorAll("#article-content img:not(#header img)");
-	const imageLinks = Array.from(imageList).map((image) => image.getAttribute("src"));
-	let currentIndex = 0;
-
-	const lightbox = document.createElement("div");
-	lightbox.id = "lightbox";
-	Object.assign(lightbox.style, {
-		display: "none",
-		position: "fixed",
-		top: "0",
-		left: "0",
-		width: "100%",
-		height: "100%",
-		backgroundColor: "rgba(0, 0, 0, 0.8)",
-		zIndex: "1000",
-		justifyContent: "center",
-		alignItems: "center",
-		textAlign: "center",
-		overflow: "hidden",
-	});
-
-	const img = document.createElement("img");
-	Object.assign(img.style, {
-		maxWidth: "80%",
-		maxHeight: "80%",
-	});
-	lightbox.appendChild(img);
-
-	const createButton = (iconClass, position) => {
-		const button = document.createElement("a");
-		button.innerHTML = `<i class="${iconClass}"></i>`;
-		Object.assign(button.style, {
-			position: "absolute",
-			[position]: "10px",
-			top: "50%",
-			transform: "translateY(-50%)",
-			color: "white",
-			fontSize: "2em",
-			cursor: "pointer",
-		});
-		return button;
-	};
-
-	const prevButton = createButton("fa fa-chevron-left", "left");
-	const nextButton = createButton("fa fa-chevron-right", "right");
-
-	lightbox.appendChild(prevButton);
-	lightbox.appendChild(nextButton);
-	document.body.appendChild(lightbox);
-
-	const showImage = (index) => {
-		img.src = imageLinks[index];
-		lightbox.style.display = "flex";
-		document.body.style.overflow = "hidden";
-	};
-
-	prevButton.addEventListener("click", () => {
-		currentIndex = (currentIndex - 1 + imageLinks.length) % imageLinks.length;
-		showImage(currentIndex);
-	});
-
-	nextButton.addEventListener("click", () => {
-		currentIndex = (currentIndex + 1) % imageLinks.length;
-		showImage(currentIndex);
-	});
-
-	lightbox.addEventListener("click", (e) => {
-		const excludeTarget = [
-			img,
-			prevButton,
-			nextButton,
-			prevButton.querySelector("i"),
-			nextButton.querySelector("i"),
-		];
-		if (!excludeTarget.includes(e.target)) {
-			lightbox.style.display = "none";
-			document.body.style.overflow = "auto";
-		}
-	});
-
-	let lastScrollTime = 0;
-	const scrollThreshold = 200;
-
-	lightbox.addEventListener("wheel", (e) => {
-		const currentTime = new Date().getTime();
-		if (currentTime - lastScrollTime < scrollThreshold) {
-			return;
-		}
-		lastScrollTime = currentTime;
-
-		e.preventDefault();
-		if (e.deltaY < 0) {
-			prevButton.click();
-			return;
-		}
-		nextButton.click();
-	});
-
-	imageList.forEach((image, index) => {
-		const imageParent = image.parentElement;
-		const imageUrl = image.getAttribute("src");
-		const imageWrapLink = document.createElement("a");
-		imageWrapLink.className = "gallery";
-		imageWrapLink.setAttribute("href", imageUrl);
-		imageWrapLink.appendChild(image);
-		imageParent.appendChild(imageWrapLink);
-
-		imageWrapLink.addEventListener("click", (e) => {
-			e.preventDefault();
-			currentIndex = index;
-			showImage(currentIndex);
-		});
-	});
+// 页面滚动
+function pageScroll() {
+  var start_hight = 0;
+  $(window).on('scroll', function () {
+    var end_hight = $(window).scrollTop();
+    var distance = end_hight - start_hight;
+    start_hight = end_hight;
+    var $header = $('#header');
+    if (distance > 0 && end_hight > 50) {
+      $header.hide();
+    } else if (distance < 0) {
+      $header.show();
+    } else {
+      return false;
+    }
+  })
 }
 
-/**
- * Toggle sidebar to expend
- * @param {*} state Toggle status of sidebar
- */
-function toggleSidebar(state) {
-	const sidebar = document.querySelector("#sidebar");
-	const content = document.querySelector("#content");
-	const header = document.querySelector("#header");
-	const footer = document.querySelector("#footer");
-	const toggleIcon = document.querySelector("#sidebar-toggle i");
-
-	const classNames = {
-		on: {
-			toggleIcon: ["fa-arrow-right", "fa-close"],
-			sidebar: "on",
-			content: "content-on",
-			header: "header-on",
-			footer: "header-on",
-		},
-		off: {
-			toggleIcon: ["fa-close", "fa-arrow-right"],
-			sidebar: "off",
-			content: "content-on",
-			header: "off",
-			footer: "off",
-		},
-	};
-
-	const {
-		toggleIcon: iconClasses,
-		sidebar: sidebarClass,
-		content: contentClass,
-		header: headerClass,
-		footer: footerClass,
-	} = classNames[state];
-
-	toggleIcon.classList.replace(...iconClasses);
-	sidebar.className = sidebarClass;
-
-	if (state === "on" && window.matchMedia("(min-width: 1100px)").matches) {
-		content.classList.toggle(contentClass);
-		header.className = headerClass;
-		footer.className = footerClass;
-	}
-	if (state === "off") {
-		content.classList.toggle(contentClass);
-		content.classList.add("off");
-		header.className = headerClass;
-		footer.className = footerClass;
-	}
+// 回到顶部
+function scrollToTop() {
+  $("#totop-toggle").on("click", function (e) {
+    $("html").animate({scrollTop: 0}, 200);
+  });
 }
 
-/**
- * The click event related to the tree node,
- * which controls the display and hiding of parent and child nodes.
- */
-function treeNodeDirClickEvent() {
-	const clickActiveNode = document.querySelector("#tree .active");
-	if (clickActiveNode) {
-		showActiveNodeChildren(clickActiveNode, true);
-	}
-
-	document.addEventListener("click", function (e) {
-		if (e.target.matches("#tree li.file > a, #tree li.directory > a")) {
-			e.preventDefault();
-			toggleActiveNodeTree(e.target);
-			const toggleAllNodeBtns = document.querySelectorAll("#tree .fa-caret-up");
-			toggleAllNodeBtns.forEach((btn) => btn.classList.replace("fa-caret-up", "fa-caret-down"));
-		}
-	});
-}
-
-/**
- * sidebar icon toggle event.
- */
+// 侧面目录
 function switchTreeOrIndex() {
-	const sidebarToggle = document.querySelector("#sidebar-toggle");
-	const sidebarEl = document.querySelector("#sidebar");
+  $('#sidebar-toggle').on('click', function () {
+    if ($('#sidebar').hasClass('on')) {
+      scrollOff();
+    } else {
+      scrollOn();
+    }
+  });
+  $('body').click(function (e) {
+    if (window.matchMedia("(max-width: 1100px)").matches) {
+      var target = $(e.target);
+      if (!target.is('#sidebar *')) {
+        if ($('#sidebar').hasClass('on')) {
+          scrollOff();
+        }
+      }
+    }
+  });
+  if (window.matchMedia("(min-width: 1100px)").matches) {
+    scrollOn();
+  } else {
+    scrollOff();
+  }
+  ;
+}
 
-	sidebarToggle.addEventListener("click", () => {
-		sidebarEl.classList.contains("on") ? toggleSidebar("off") : toggleSidebar("on");
-	});
+//生成文章目录
+function showArticleIndex() {
+  $(".article-toc").empty();
+  $(".article-toc").hide();
+  $(".article-toc.active-toc").removeClass("active-toc");
+  $("#tree .active").next().addClass('active-toc');
 
-	document.body.addEventListener("click", (e) => {
-		if (window.matchMedia("(max-width: 1100px)").matches) {
-			const sidebarEl = document.querySelector("#sidebar");
-			if (!e.target.closest("#sidebar") && sidebarEl.classList.contains("on")) {
-				toggleSidebar("off");
-			}
-		}
-	});
+  var labelList = $("#article-content").children();
+  var content = "<ul>";
+  var max_level = 4;
+  for (var i = 0; i < labelList.length; i++) {
+    var level = 5;
+    if ($(labelList[i]).is("h1")) {
+      level = 1;
+    } else if ($(labelList[i]).is("h2")) {
+      level = 2;
+    } else if ($(labelList[i]).is("h3")) {
+      level = 3;
+    } else if ($(labelList[i]).is("h4")) {
+      level = 4;
+    }
+    if (level < max_level) {
+      max_level = level;
+    }
+  }
+  for (var i = 0; i < labelList.length; i++) {
+    var level = 0;
+    if ($(labelList[i]).is("h1")) {
+      level = 1 - max_level + 1;
+    } else if ($(labelList[i]).is("h2")) {
+      level = 2 - max_level + 1;
+    } else if ($(labelList[i]).is("h3")) {
+      level = 3 - max_level + 1;
+    } else if ($(labelList[i]).is("h4")) {
+      level = 4 - max_level + 1;
+    }
+    if (level != 0) {
+      $(labelList[i]).before(
+          '<span class="anchor" id="_label' + i + '"></span>');
+      content += '<li class="level_' + level
+          + '"><i class="fa fa-circle" aria-hidden="true"></i><a href="#_label'
+          + i + '"> ' + $(labelList[i]).text() + '</a></li>';
+    }
+  }
+  content += "</ul>"
 
-	if (window.matchMedia("(min-width: 1100px)").matches) {
-		return toggleSidebar("on");
-	}
-	toggleSidebar("off");
+  $(".article-toc.active-toc").append(content);
+
+  if (null != $(".article-toc a") && 0 != $(".article-toc a").length) {
+
+    // 点击目录索引链接，动画跳转过去，不是默认闪现过去
+    $(".article-toc a").on("click", function (e) {
+      e.preventDefault();
+      // 获取当前点击的 a 标签，并前触发滚动动画往对应的位置
+      var target = $(this.hash);
+      $("body, html").animate(
+          {'scrollTop': target.offset().top},
+          500
+      );
+    });
+
+    // 监听浏览器滚动条，当浏览过的标签，给他上色。
+    $(window).on("scroll", function (e) {
+      var anchorList = $(".anchor");
+      anchorList.each(function () {
+        var tocLink = $('.article-toc a[href="#' + $(this).attr("id") + '"]');
+        var anchorTop = $(this).offset().top;
+        var windowTop = $(window).scrollTop();
+        if (anchorTop <= windowTop + 100) {
+          tocLink.addClass("read");
+        } else {
+          tocLink.removeClass("read");
+        }
+      });
+    });
+  }
+  $(".article-toc.active-toc").show();
+  $(".article-toc.active-toc").children().show();
+}
+
+function pjaxLoad() {
+  $(document).pjax('#menu a', '#content',
+      {fragment: '#content', timeout: 8000});
+  $(document).pjax('#tree a', '#content',
+      {fragment: '#content', timeout: 8000});
+  $(document).pjax('#index a', '#content',
+      {fragment: '#content', timeout: 8000});
+  $(document).on({
+    "pjax:complete": function (e) {
+      $("pre code").each(function (i, block) {
+        hljs.highlightBlock(block);
+      });
+      // 添加 active
+      $("#tree .active").removeClass("active");
+      var title = $("#article-title").text().trim();
+      if (title.length) {
+        var searchResult = $("#tree li.file").find(
+            "a:contains('" + title + "')");
+        if (searchResult.length) {
+          $(".fa-minus-square-o").removeClass("fa-minus-square-o").addClass(
+              "fa-plus-square-o");
+          $("#tree ul").css("display", "none");
+          if (searchResult.length > 1) {
+            var categorie = $("#article-categories span:last a").html();
+            if (typeof categorie != "undefined") {
+              categorie = categorie.trim();
+              searchResult = $("#tree li.directory a:contains('" + categorie
+                  + "')").siblings().find("a:contains('" + title + "')");
+            }
+          }
+          searchResult[0].parentNode.classList.add("active");
+          showActiveTree($("#tree .active"), true)
+        }
+        showArticleIndex();
+      }
+      wrapImageWithFancyBox();
+    }
+  });
+}
+
+// 搜索框输入事件
+function serachTree() {
+  // 解决搜索大小写问题
+  jQuery.expr[':'].contains = function (a, i, m) {
+    return jQuery(a).text().toUpperCase().indexOf(m[3].toUpperCase()) >= 0;
+  };
+
+  $("#search-input").on("input", function (e) {
+    e.preventDefault();
+
+    // 获取 inpiut 输入框的内容
+    var inputContent = e.currentTarget.value;
+
+    // 没值就收起父目录，但是得把 active 的父目录都展开
+    if (inputContent.length === 0) {
+      $(".fa-minus-square-o").removeClass("fa-minus-square-o").addClass(
+          "fa-plus-square-o");
+      $("#tree ul").css("display", "none");
+      if ($("#tree .active").length) {
+        showActiveTree($("#tree .active"), true);
+      } else {
+        $("#tree").children().css("display", "block");
+      }
+    }
+    // 有值就搜索，并且展开父目录
+    else {
+      $(".fa-plus-square-o").removeClass("fa-plus-square-o").addClass(
+          "fa-minus-square-o");
+      $("#tree ul").css("display", "none");
+      var searchResult = $("#tree li").find(
+          "a:contains('" + inputContent + "')");
+      if (searchResult.length) {
+        showActiveTree(searchResult.parent(), false)
+      }
+    }
+  });
+
+  $("#search-input").on("keyup", function (e) {
+    e.preventDefault();
+    if (event.keyCode == 13) {
+      var inputContent = e.currentTarget.value;
+
+      if (inputContent.length === 0) {
+      } else {
+        window.open(searchEngine + inputContent + "%20site:" + homeHost,
+            "_blank");
+      }
+    }
+  });
+}
+
+// 点击目录事件
+function clickTreeDirectory() {
+  // 判断有 active 的话，就递归循环把它的父目录打开
+  var treeActive = $("#tree .active");
+  if (treeActive.length) {
+    showActiveTree(treeActive, true);
+  }
+
+  // 点击目录，就触发折叠动画效果
+  $(document).on("click", "#tree a[class='directory']", function (e) {
+    // 用来清空所有绑定的其他事件
+    e.preventDefault();
+
+    var icon = $(this).children(".fa");
+    var iconIsOpen = icon.hasClass("fa-minus-square-o");
+    var subTree = $(this).siblings("ul");
+
+    icon.removeClass("fa-minus-square-o").removeClass("fa-plus-square-o");
+
+    if (iconIsOpen) {
+      if (typeof subTree != "undefined") {
+        subTree.slideUp({duration: 100});
+      }
+      icon.addClass("fa-plus-square-o");
+    } else {
+      if (typeof subTree != "undefined") {
+        subTree.slideDown({duration: 100});
+      }
+      icon.addClass("fa-minus-square-o");
+    }
+  });
+}
+
+// 循环递归展开父节点
+function showActiveTree(jqNode, isSiblings) {
+  if (jqNode.attr("id") === "tree") {
+    return;
+  }
+  if (jqNode.is("ul")) {
+    jqNode.css("display", "block");
+
+    // 这个 isSiblings 是给搜索用的
+    // true 就显示开同级兄弟节点
+    // false 就是给搜索用的，值需要展示它自己就好了，不展示兄弟节点
+    if (isSiblings) {
+      jqNode.siblings().css("display", "block");
+      jqNode.siblings("a").css("display", "inline");
+      jqNode.siblings("a").find(".fa-plus-square-o").removeClass(
+          "fa-plus-square-o").addClass("fa-minus-square-o");
+    }
+  }
+  jqNode.each(function () {
+    showActiveTree($(this).parent(), isSiblings);
+  });
+}
+
+function scrollOn() {
+  var $sidebar = $('#sidebar'),
+      $content = $('#content'),
+      $header = $('#header'),
+      $footer = $('#footer'),
+      $togglei = $('#sidebar-toggle i');
+
+  $togglei.addClass('fa-close');
+  $togglei.removeClass('fa-arrow-right');
+  $sidebar.addClass('on');
+  $sidebar.removeClass('off');
+
+  if (window.matchMedia("(min-width: 1100px)").matches) {
+    $content.addClass('content-on');
+    $content.removeClass('content-off');
+    $header.addClass('header-on');
+    $header.removeClass('off');
+    $footer.addClass('header-on');
+    $footer.removeClass('off');
+  }
+}
+
+function scrollOff() {
+  var $sidebar = $('#sidebar'),
+      $content = $('#content'),
+      $header = $('#header'),
+      $footer = $('#footer'),
+      $togglei = $('#sidebar-toggle i');
+
+  $togglei.addClass('fa-arrow-right');
+  $togglei.removeClass('fa-close');
+  $sidebar.addClass('off');
+  $sidebar.removeClass('on');
+
+  $content.addClass('content-off');
+  $content.removeClass('content-on');
+  $header.addClass('off');
+  $header.removeClass('header-on');
+  $footer.addClass('off');
+  $footer.removeClass('header-on');
 }
 
 /**
- * Generate articles catalog and active the current toc by scroll
+ * Wrap images with fancybox support.
  */
-function activeArticleToc() {
-	const articleTocList = document.querySelectorAll(".article-toc");
-	articleTocList.forEach((tocNode) => {
-		tocNode.innerHTML = "";
-		tocNode.style.display = "none";
-		tocNode.classList.remove("active-toc");
-	});
-
-	const activeLi = document.querySelector(
-		"#tree li.file.active, #tree li.directory .directory.active"
-	);
-
-	if (!activeLi) {
-		return;
-	}
-
-	const activeTocNode = activeLi.parentElement.querySelector(".article-toc");
-	activeTocNode.classList.add("active-toc");
-	activeTocNode.style.display = "block";
-
-	const articleContent = document.querySelector("#article-content");
-	const labelNodeList = articleContent.querySelectorAll("h1, h2, h3, h4, h5, h6") || [];
-
-	const tocJson = [];
-	const stack = [];
-	labelNodeList.forEach((label) => {
-		const level = parseInt(label.tagName.slice(1), 10);
-		const id = label.id;
-		const title = label.querySelector("a").getAttribute("title");
-
-		const tocItem = {
-			level,
-			id,
-			title,
-			children: [],
-		};
-
-		while (stack.length > 0 && stack[stack.length - 1].level >= level) {
-			stack.pop();
-		}
-
-		if (stack.length > 0) {
-			stack[stack.length - 1].children.push(tocItem);
-		} else {
-			tocJson.push(tocItem);
-		}
-		stack.push(tocItem);
-	});
-
-	const generateToc = (tocJson, parentElement) => {
-		tocJson.forEach((item) => {
-			const li = document.createElement("li");
-			const a = document.createElement("a");
-			a.href = `#${item.id}`;
-			a.textContent = item.title;
-			li.appendChild(a);
-
-			if (item.children.length > 0) {
-				const ul = document.createElement("ul");
-				li.appendChild(ul);
-				generateToc(item.children, ul);
-			}
-
-			parentElement.appendChild(li);
-		});
-	};
-
-	const ul = document.createElement("ul");
-	activeTocNode.appendChild(ul);
-	generateToc(tocJson, ul);
-
-	const tocLinks = document.querySelectorAll(".article-toc a") || [];
-	tocLinks.forEach((link) => {
-		link.addEventListener("click", function (e) {
-			e.preventDefault();
-			const decodedHash = decodeURIComponent(link.getAttribute("href"));
-			const target = document.querySelector(decodedHash);
-			window.scrollTo({
-				top: target.offsetTop,
-				behavior: "smooth",
-			});
-
-			setTimeout(() => (location.hash = decodedHash), 500);
-		});
-	});
-
-	const anchorList = document.querySelectorAll(".headerlink");
-
-	window.addEventListener("scroll", function () {
-		const articleContent = document.querySelector("#article-content");
-		const isBottom = window.scrollY + window.innerHeight - 300 >= articleContent.scrollHeight;
-		if (isBottom) {
-			const tocLinkList = document.querySelectorAll(".article-toc a");
-			tocLinkList.forEach((tocLink) => tocLink.classList.add("read"));
-			return;
-		}
-
-		anchorList.forEach((anchor) => {
-			const tocLinkList = document.querySelectorAll(
-				`.article-toc a[href="${anchor.getAttribute("href")}"]`
-			);
-			const anchorTop = anchor.getBoundingClientRect().top + window.scrollY;
-			const windowTop = window.scrollY;
-			if (anchorTop <= windowTop + 100) {
-				tocLinkList.forEach((tocLink) => {
-					tocLink.classList.add("read");
-					tocLink.parentNode.style.color = "#c7bb9c";
-				});
-				return;
-			}
-
-			tocLinkList.forEach((tocLink) => {
-				tocLink.classList.remove("read");
-				tocLink.parentNode.style.color = "#000000";
-			});
-		});
-	});
-
-	const tocUlList = activeTocNode.querySelectorAll("ul");
-	tocUlList.forEach((ul) => {
-		ul.style.display = "block";
-	});
-
-	anchorList.forEach((anchor) => {
-		const tocLinkList = document.querySelectorAll(
-			`.article-toc a[href="${anchor.getAttribute("href")}"]`
-		);
-		const anchorTop = anchor.getBoundingClientRect().top + window.scrollY;
-		const windowTop = window.scrollY;
-		if (anchorTop <= windowTop + 100) {
-			tocLinkList.forEach((tocLink) => {
-				tocLink.classList.add("read");
-				tocLink.parentNode.style.color = "#c7bb9c";
-			});
-			return;
-		}
-
-		tocLinkList.forEach((tocLink) => {
-			tocLink.classList.remove("read");
-			tocLink.parentNode.style.color = "#000000";
-		});
-	});
-}
-
-/**
- * Toggle all tree nodes.
- */
-function toggleTreeNodes() {
-	const treeUls = document.querySelectorAll("#tree > ul");
-	treeUls.forEach((treeUl) => {
-		const beforeEl = document.createElement("i");
-		beforeEl.className = "fa fa-caret-down";
-		beforeEl.setAttribute("aria-hidden", "true");
-		Object.assign(beforeEl.style, {
-			position: "absolute",
-			right: "20px",
-			cursor: "pointer",
-			color: "#454545",
-		});
-
-		beforeEl.addEventListener("mouseover", () => {
-			beforeEl.style.color = "rgb(122, 122, 122)";
-		});
-
-		beforeEl.addEventListener("mouseout", () => {
-			beforeEl.style.color = "#454545";
-		});
-
-		treeUl.prepend(beforeEl);
-
-		beforeEl.addEventListener("click", () => {
-			const branches = treeUl.querySelectorAll("li.directory .fa");
-			if (beforeEl.classList.contains("fa-caret-down")) {
-				beforeEl.classList.replace("fa-caret-down", "fa-caret-up");
-
-				Array.from(branches).forEach((branch) => {
-					if (!branch.classList.contains("fa-minus-square-o")) {
-						const targetNode = branch.closest("li.directory");
-						toggleActiveNodeTree(targetNode);
-					}
-				});
-				return;
-			}
-
-			beforeEl.classList.remove("fa-caret-up");
-			beforeEl.classList.add("fa-caret-down");
-
-			branches.forEach((branch) => {
-				if (!branch.classList.contains("fa-plus-square-o")) {
-					const targetNode = branch.closest("li.directory");
-					toggleActiveNodeTree(targetNode);
-				}
-			});
-		});
-	});
-}
-
-/**
- * Toggle the current active node
- * @param { Node } node active sidebar link node
- */
-function toggleActiveNodeTree(node) {
-	const nodeUl = node.closest("ul");
-	const dirIcon = node.querySelector(".fa");
-	const subTree = nodeUl.querySelector("li");
-
-	if (dirIcon) {
-		const iconIsOpen = dirIcon.classList.contains("fa-minus-square-o");
-		if (iconIsOpen) {
-			if (subTree) {
-				Array.from(subTree.children).forEach((child) => {
-					const tagName = child.tagName.toLowerCase();
-					if (tagName === "ul") {
-						child.style.display = "";
-					}
-				});
-			}
-			dirIcon.classList.replace("fa-minus-square-o", "fa-plus-square-o");
-			return;
-		}
-	}
-
-	if (subTree) {
-		Array.from(subTree.children).forEach((child) => {
-			const tagName = child.tagName.toLowerCase();
-			if (tagName === "ul") {
-				child.style.display = "block";
-			}
-		});
-	}
-
-	if (dirIcon) {
-		dirIcon.classList.replace("fa-plus-square-o", "fa-minus-square-o");
-	}
-}
-
-/**
- * Show the sibling or child nodes of the currently active node.
- * @param {*} activeNode current active node
- * @param {*} isSiblings directory mark
- * @returns
- */
-function showActiveNodeChildren(activeNode, isSiblings) {
-	const treeNode = activeNode?.getAttribute("id") || "";
-	if (treeNode === "tree") {
-		return;
-	}
-
-	const nodeUl = activeNode?.tagName.toLowerCase() || "";
-
-	if (nodeUl === "ul") {
-		activeNode.style.display = "block";
-
-		if (isSiblings) {
-			const nodeChildNodes = activeNode.parentNode.children;
-			Array.from(nodeChildNodes).forEach((node) => {
-				node.style.display = "block";
-
-				const tagName = node.tagName.toLowerCase();
-				if (tagName === "a") {
-					node.style.display = "inline";
-
-					const iconEl = node.querySelector(".fa-plus-square-o");
-					iconEl?.classList.replace("fa-plus-square-o", "fa-minus-square-o");
-				}
-			});
-		}
-	}
-
-	showActiveNodeChildren(activeNode.parentElement, isSiblings);
-
-	const tagName = activeNode.tagName.toLowerCase();
-
-	if (tagName === "a") {
-		toggleActiveNodeTree(activeNode);
-	}
-}
-
-/**
- * Page loading by fetch
- * @param { String } url loading page url
- */
-function pureFetchLoading(url) {
-	url = url || location.href;
-	fetch(url)
-		.then((response) => response.text())
-		.then((html) => {
-			const parser = new DOMParser();
-			const doc = parser.parseFromString(html, "text/html");
-
-			const keywords = doc.querySelector("meta[name='keywords']")?.getAttribute("content");
-			const description = doc.querySelector("meta[name='description']")?.getAttribute("content");
-
-			document.title = doc.title;
-			document.querySelector("meta[name='keywords']").setAttribute("content", keywords);
-			document.querySelector("meta[name='description']").setAttribute("content", description);
-
-			const newContent = doc.querySelector("#content");
-
-			if (!newContent) {
-				return (location.href = "/404");
-			}
-
-			const pageContent = document.querySelector("#content");
-			pageContent.innerHTML = newContent.innerHTML;
-			document.querySelector("#tree .active")?.classList.remove("active");
-
-			const title = decodeURI(window.location.pathname).slice(0, -1);
-			if (title.length) {
-				let treeNodes = document.querySelectorAll(`#tree li.file a[title='${title}']`);
-				if (treeNodes.length) {
-					document.querySelectorAll(".fa-minus-square-o").forEach((icon) => {
-						icon.classList.replace("fa-minus-square-o", "fa-plus-square-o");
-					});
-					document.querySelectorAll("#tree ul").forEach((ul) => {
-						ul.style.display = "none";
-					});
-					if (treeNodes.length > 1) {
-						const categories = document
-							.querySelector("#article-categories span:last-child a")
-							?.innerHTML.trim();
-						if (categories) {
-							const directoryList = document.querySelectorAll(
-								"#tree li.directory a:contains('" + categories + "')"
-							);
-							treeNodes = Array.from(directoryList)
-								.map((el) => el.nextElementSibling.querySelector(`a[title='${title}']`))
-								.filter((el) => el);
-						}
-					}
-					treeNodes[0].parentNode.classList.add("active");
-
-					const activeNode = document.querySelector("#tree .active");
-					showActiveNodeChildren(activeNode, true);
-				}
-
-				if (!treeNodes.length) {
-					const treeNode = document.querySelector(`#tree li.directory a[title='${title}']`);
-					treeNode?.classList.add("active");
-				}
-				activeArticleToc();
-			}
-			wrapImageWithLightBox();
-			reloadMarkScript();
-		})
-		.catch((error) => console.error("Error loading content:", error));
-}
-
-/**
- * Reload web analysis when page pure loading
- */
-function reloadMarkScript() {
-	const scripts = document.querySelectorAll("script[reload]");
-	scripts.forEach((script) => {
-		const parentElement = script.parentElement;
-		if (parentElement) {
-			const newScript = document.createElement("script");
-			newScript.innerHTML = script.innerHTML;
-			for (const { name, value } of script.attributes) {
-				newScript.setAttribute(name, value);
-			}
-			parentElement.removeChild(script);
-			parentElement.appendChild(newScript);
-		}
-	});
-}
-
-/**
- * When the page is first loaded, the page loading is performed.
- */
-function setupNavigation() {
-	document.addEventListener("click", function (e) {
-		const target = e.target.closest("a");
-		if (
-			target &&
-			target.matches(
-				"#menu a:not(.item-icon), #index a, #tree li.file > a[href], #tree li.directory > a[href], .post-guide a"
-			)
-		) {
-			e.preventDefault();
-			const url = target.href;
-			history.pushState(null, "", url);
-			pureFetchLoading(url);
-			window.scrollTo({
-				top: 0,
-				behavior: "smooth",
-			});
-		}
-	});
-
-	window.addEventListener("popstate", function (event) {
-		if (event.state === null) {
-			return;
-		}
-		pureFetchLoading();
-		window.scrollTo({
-			top: 0,
-			behavior: "smooth",
-		});
-	});
-}
-
-/**
- * search tree node by keyword
- */
-function searchTreeNode() {
-	const searchInput = document.getElementById("search-input");
-
-	searchInput.addEventListener("input", function (e) {
-		e.preventDefault();
-
-		const inputContent = e.currentTarget.value;
-		const faMinusIcons = document.querySelectorAll(".fa-minus-square-o");
-		const treeUls = document.querySelectorAll("#tree ul");
-
-		if (!inputContent) {
-			const activeNode = document.querySelector("#tree .active");
-
-			faMinusIcons.forEach((icon) => {
-				icon.classList.replace("fa-minus-square-o", "fa-plus-square-o");
-			});
-			treeUls.forEach((ul) => (ul.style.display = "none"));
-
-			if (activeNode) {
-				return showActiveNodeChildren(activeNode, true);
-			}
-
-			const treeEl = document.querySelector("#tree");
-			Array.from(treeEl.children).forEach((child) => {
-				child.style.display = "block";
-			});
-			return;
-		}
-
-		treeUls.forEach((ul) => {
-			ul.style.display = "none";
-		});
-
-		const treeNodeLinks = document.querySelectorAll("#tree li a");
-		const searchResultNodes = Array.from(treeNodeLinks).filter((node) => {
-			return node.textContent.includes(inputContent);
-		});
-
-		if (searchResultNodes.length) {
-			searchResultNodes.forEach((result) => {
-				toggleActiveNodeTree(result);
-				showActiveNodeChildren(result.parentElement, false);
-
-				const linkTitle = result.title;
-				const liNodeList = document.querySelectorAll(
-					`#tree li.directory:has(a[title="${linkTitle}"])`
-				);
-				liNodeList.forEach((li) => {
-					const iconEl = li.querySelector(".fa");
-					iconEl.classList.replace("fa-plus-square-o", "fa-minus-square-o");
-				});
-			});
-		}
-	});
-
-	searchInput.addEventListener("keyup", (e) => {
-		e.preventDefault();
-		if (e.code === "Enter") {
-			const inputContent = e.currentTarget.value;
-			if (inputContent) {
-				window.open(window.searchEngine + inputContent + "%20site:" + window.homeHost, "_blank");
-			}
-		}
-	});
+function wrapImageWithFancyBox() {
+  $('img').not('#header img').each(function () {
+    var $image = $(this);
+    var imageCaption = $image.attr('alt');
+    var $imageWrapLink = $image.parent('a');
+
+    if ($imageWrapLink.length < 1) {
+      var src = this.getAttribute('src');
+      var idx = src.lastIndexOf('?');
+      if (idx != -1) {
+        src = src.substring(0, idx);
+      }
+      $imageWrapLink = $image.wrap('<a href="' + src + '"></a>').parent('a');
+    }
+
+    $imageWrapLink.attr('data-fancybox', 'images');
+    if (imageCaption) {
+      $imageWrapLink.attr('data-caption', imageCaption);
+    }
+
+  });
+
+  $('[data-fancybox="images"]').fancybox({
+    buttons: [
+      'slideShow',
+      'thumbs',
+      'zoom',
+      'fullScreen',
+      'close'
+    ],
+    thumbs: {
+      autoStart: false
+    }
+  });
 }
