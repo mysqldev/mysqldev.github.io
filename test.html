@@ -8,6 +8,8 @@
 	
 <title>
     
+        test&nbsp;&nbsp;✦&nbsp;
+    
     MySQL Notes
 </title>
 
@@ -18,7 +20,8 @@
 
 <meta name="keywords" content="" />
 
-<meta name="description" content="" />
+<meta name="description" content="hello world
+" />
 
 	<!-- favicon -->
 	
@@ -156,7 +159,7 @@
 							</ul>
 			
 							<ul>
-								<li class="file">
+								<li class="file active">
 									<a href="/test.html" title="/test.htm">
 									
 										test
@@ -171,74 +174,161 @@
 </div>
 
 	<div id="content">
-		<div id="index">
-	
-	<div class="index-li">
-		<a href="/test.html">
-			<h2 class="index-title">
-				test
-			</h2>
-			<div class="index-brief">
-				hello world
- ...
-			</div>
-		</a>
-		<div class="article-meta">
-			<span>2025-08-17</span>
-			  
-		</div>
-	</div>
-	
-	<div class="index-li">
-		<a href="/TOC.html">
-			<h2 class="index-title">
-				TOC - all posts
-			</h2>
-			<div class="index-brief">
-				
-MySQL原理源码与实践
+		<h1 id="article-title">
+	test
+</h1>
 
-MySQL简介
-SQL层
-SQL语法解析
-SQL优化器
-线程池
-Binlog
-
-
-
-
-InnoDB存储引擎
-
-数据存储空间
-Tablespace
-
-
-InnoDB事务系统
-InnoDB事务锁系统
-
-
-RocksDB存储引擎
-
-MySQL事务
-
-MySQL DDL
-
-
- ...
-			</div>
-		</a>
-		<div class="article-meta">
-			<span>2023-08-17</span>
-			  
-		</div>
-	</div>
-	
-
-	<div id="index-paginator">
+<div class="article-meta">
+	<span> mysqldev </span>
+	<span> 2025-08-17 17:35:51 </span>
+	<div id="article-categories">
+		
+			<span>Categories：</span>
+			
+		
+		
+			<span>Tags：</span>
+			
 		
 	</div>
 </div>
+
+<div id="article-content">
+	<p>hello world</p>
+
+	
+    <div class="copyright-box">
+		<div class="license-box">
+			<div class="license-header">
+				
+				<div class="license-title">
+					test
+				</div>
+				<div class="license-subTitle">http://example.com/test.html</div>
+			</div>
+			<div class="license-meta">
+				
+					<div class="license-meta-item">
+						<div>Author</div>
+						<div>
+							<a href="">
+								mysqldev
+							</a>
+						</div>
+					</div>
+				
+				
+					<div class="license-meta-item license-meta-date">
+					<div>Posted on</div>
+					<div>August 17, 2025</div>
+					</div>
+				
+				
+				
+				
+					<div class="license-meta-item">
+					<div>Licensed under</div>
+					<div>
+						
+						
+						
+							<a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+								<span class="hint--top hint--rounded" aria-label="BY - Attribution">
+									BY - Attribution
+								</span>
+							</a>
+						
+						
+					</div>
+					</div>
+				
+			</div>
+		</div>
+	</div>
+
+</div>
+
+
+    
+
+    
+
+    
+        
+        <script async reload>
+            fetch("https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/tokyo-night-dark.css")
+                .then((response) => response.text())
+                .then((cssContent) => {
+                    const style = document.createElement("style");
+                    
+                        cssContent = cssContent
+                            .replace(".hljs-code,", "")
+                            .replaceAll("_", " ")
+                            .replaceAll("hljs-", "hljs .")
+                            .replaceAll(".hljs", " .highlight")
+                            .replaceAll(".built in", ".built_in")
+                            .replaceAll("title.", "");
+                        const figures = document.querySelectorAll("figure.highlight td.gutter");
+                        figures.forEach(figure=>{
+                            figure.classList.add("highlight");
+                        })
+                    
+                    style.innerHTML = cssContent;
+                    document.head.appendChild(style);
+                })
+                .catch((error) => {
+                    console.error("Error loading CSS:", error);
+                });
+        </script>
+    
+
+
+
+
+
+    <script reload>
+        var targets = document.querySelectorAll("figure.highlight, #article-content > pre:not(.highlight,.hljs)");
+        targets.forEach((block) => {
+            const copyBtn = document.createElement("button");
+            copyBtn.innerHTML = `<i class="fa fa-clone" aria-hidden="true"></i>`;
+            copyBtn.className = "code-copy";
+
+            
+                copyBtn.style.color = "#fff";
+            
+
+            copyBtn.addEventListener("click", () => {
+                const text = block.querySelector("td.code")?.textContent || block.querySelector("code")?.textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    copyBtn.innerHTML = "Copied!";
+                    setTimeout(() => {
+                        copyBtn.innerHTML = `<i class="fa fa-clone" aria-hidden="true"></i>`;
+                    }, 2000);
+                });
+            });
+            block.appendChild(copyBtn);
+        });
+    </script>
+
+
+
+
+<div class="post-guide">
+	<div class="item left">
+	
+		<a href="/TOC.html">
+			<i class="fa fa-angle-left" aria-hidden="true"></i>
+			TOC - all posts
+		</a>
+	
+	</div>
+	<div class="item right">
+		
+	</div>
+</div>
+
+
+
 
 	</div>
 
